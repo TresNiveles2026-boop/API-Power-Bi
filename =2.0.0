@@ -1,0 +1,156 @@
+Collecting supabase
+  Downloading supabase-2.28.0-py3-none-any.whl.metadata (4.6 kB)
+Collecting realtime==2.28.0 (from supabase)
+  Downloading realtime-2.28.0-py3-none-any.whl.metadata (7.0 kB)
+Collecting supabase-functions==2.28.0 (from supabase)
+  Downloading supabase_functions-2.28.0-py3-none-any.whl.metadata (2.4 kB)
+Collecting storage3==2.28.0 (from supabase)
+  Downloading storage3-2.28.0-py3-none-any.whl.metadata (2.1 kB)
+Collecting supabase-auth==2.28.0 (from supabase)
+  Downloading supabase_auth-2.28.0-py3-none-any.whl.metadata (6.4 kB)
+Collecting postgrest==2.28.0 (from supabase)
+  Downloading postgrest-2.28.0-py3-none-any.whl.metadata (3.4 kB)
+Requirement already satisfied: httpx<0.29,>=0.26 in ./venv/lib/python3.12/site-packages (from supabase) (0.28.1)
+Collecting yarl>=1.22.0 (from supabase)
+  Downloading yarl-1.22.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+     ━━ 7… 2… eta 0…
+        kB M…       
+Collecting deprecation>=2.1.0 (from postgrest==2.28.0->supabase)
+  Downloading deprecation-2.1.0-py2.py3-none-any.whl.metadata (4.6 kB)
+Requirement already satisfied: pydantic<3.0,>=1.9 in ./venv/lib/python3.12/site-packages (from postgrest==2.28.0->supabase) (2.12.5)
+Requirement already satisfied: typing-extensions>=4.14.0 in ./venv/lib/python3.12/site-packages (from realtime==2.28.0->supabase) (4.15.0)
+Collecting websockets<16,>=11 (from realtime==2.28.0->supabase)
+  Downloading websockets-15.0.1-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+Collecting pyiceberg>=0.10.0 (from storage3==2.28.0->supabase)
+  Downloading pyiceberg-0.11.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (4.8 kB)
+Requirement already satisfied: pyjwt>=2.10.1 in ./venv/lib/python3.12/site-packages (from pyjwt[crypto]>=2.10.1->supabase-auth==2.28.0->supabase) (2.11.0)
+Collecting strenum>=0.4.15 (from supabase-functions==2.28.0->supabase)
+  Downloading StrEnum-0.4.15-py3-none-any.whl.metadata (5.3 kB)
+Requirement already satisfied: anyio in ./venv/lib/python3.12/site-packages (from httpx<0.29,>=0.26->supabase) (4.12.1)
+Requirement already satisfied: certifi in ./venv/lib/python3.12/site-packages (from httpx<0.29,>=0.26->supabase) (2026.1.4)
+Requirement already satisfied: httpcore==1.* in ./venv/lib/python3.12/site-packages (from httpx<0.29,>=0.26->supabase) (1.0.9)
+Requirement already satisfied: idna in ./venv/lib/python3.12/site-packages (from httpx<0.29,>=0.26->supabase) (3.11)
+Requirement already satisfied: h11>=0.16 in ./venv/lib/python3.12/site-packages (from httpcore==1.*->httpx<0.29,>=0.26->supabase) (0.16.0)
+Collecting multidict>=4.0 (from yarl>=1.22.0->supabase)
+  Downloading multidict-6.7.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting propcache>=0.2.1 (from yarl>=1.22.0->supabase)
+  Downloading propcache-0.4.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+Collecting packaging (from deprecation>=2.1.0->postgrest==2.28.0->supabase)
+  Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting h2<5,>=3 (from httpx[http2]<0.29,>=0.26->postgrest==2.28.0->supabase)
+  Downloading h2-4.3.0-py3-none-any.whl.metadata (5.1 kB)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic<3.0,>=1.9->postgrest==2.28.0->supabase) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.5 in ./venv/lib/python3.12/site-packages (from pydantic<3.0,>=1.9->postgrest==2.28.0->supabase) (2.41.5)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic<3.0,>=1.9->postgrest==2.28.0->supabase) (0.4.2)
+Collecting mmh3<6.0.0,>=4.0.0 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading mmh3-5.2.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (14 kB)
+Requirement already satisfied: requests<3.0.0,>=2.20.0 in ./venv/lib/python3.12/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase) (2.32.5)
+Requirement already satisfied: click<9.0.0,>=7.1.1 in ./venv/lib/python3.12/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase) (8.3.1)
+Collecting rich<15.0.0,>=10.11.0 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading rich-14.3.2-py3-none-any.whl.metadata (18 kB)
+Collecting strictyaml<2.0.0,>=1.7.0 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading strictyaml-1.7.3-py3-none-any.whl.metadata (11 kB)
+Collecting fsspec>=2023.1.0 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading fsspec-2026.2.0-py3-none-any.whl.metadata (10 kB)
+Collecting pyparsing<4.0.0,>=3.1.0 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
+Collecting tenacity<10.0.0,>=8.2.3 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading tenacity-9.1.4-py3-none-any.whl.metadata (1.2 kB)
+Collecting pyroaring<2.0.0,>=1.0.0 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading pyroaring-1.0.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (10 kB)
+Collecting cachetools<7.0,>=5.5 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading cachetools-6.2.6-py3-none-any.whl.metadata (5.6 kB)
+Collecting zstandard<1.0.0,>=0.13.0 (from pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (3.3 kB)
+Requirement already satisfied: cryptography>=3.4.0 in ./venv/lib/python3.12/site-packages (from pyjwt[crypto]>=2.10.1->supabase-auth==2.28.0->supabase) (46.0.5)
+Requirement already satisfied: cffi>=2.0.0 in ./venv/lib/python3.12/site-packages (from cryptography>=3.4.0->pyjwt[crypto]>=2.10.1->supabase-auth==2.28.0->supabase) (2.0.0)
+Collecting hyperframe<7,>=6.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.28.0->supabase)
+  Downloading hyperframe-6.1.0-py3-none-any.whl.metadata (4.3 kB)
+Collecting hpack<5,>=4.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.28.0->supabase)
+  Downloading hpack-4.1.0-py3-none-any.whl.metadata (4.6 kB)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests<3.0.0,>=2.20.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase) (3.4.4)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests<3.0.0,>=2.20.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase) (2.6.3)
+Collecting markdown-it-py>=2.2.0 (from rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+Collecting pygments<3.0.0,>=2.13.0 (from rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+Collecting python-dateutil>=2.6.0 (from strictyaml<2.0.0,>=1.7.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Requirement already satisfied: pycparser in ./venv/lib/python3.12/site-packages (from cffi>=2.0.0->cryptography>=3.4.0->pyjwt[crypto]>=2.10.1->supabase-auth==2.28.0->supabase) (3.0)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+Collecting six>=1.5 (from python-dateutil>=2.6.0->strictyaml<2.0.0,>=1.7.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase)
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Downloading supabase-2.28.0-py3-none-any.whl (16 kB)
+Downloading postgrest-2.28.0-py3-none-any.whl (22 kB)
+Downloading realtime-2.28.0-py3-none-any.whl (22 kB)
+Downloading storage3-2.28.0-py3-none-any.whl (28 kB)
+Downloading supabase_auth-2.28.0-py3-none-any.whl (48 kB)
+   ━━ 4… 4… eta 0:0…
+      kB M…         
+Downloading supabase_functions-2.28.0-py3-none-any.whl (8.8 kB)
+Downloading yarl-1.22.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (377 kB)
+   ━━ 3… 9… eta 0:0…
+      kB M…         
+Downloading deprecation-2.1.0-py2.py3-none-any.whl (11 kB)
+Downloading multidict-6.7.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (256 kB)
+   ━━ 2… 1… eta 0:0…
+      kB M…         
+Downloading propcache-0.4.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (221 kB)
+   ━━ 2… 8… eta 0:0…
+      kB M…         
+Downloading pyiceberg-0.11.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (729 kB)
+   ━━ 7… 2… eta 0:0…
+      kB M…         
+Downloading StrEnum-0.4.15-py3-none-any.whl (8.9 kB)
+Downloading websockets-15.0.1-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (182 kB)
+   ━━ 1… 1… eta 0:0…
+      kB M…         
+Downloading cachetools-6.2.6-py3-none-any.whl (11 kB)
+Downloading fsspec-2026.2.0-py3-none-any.whl (202 kB)
+   ━━ 2… 1… eta 0:0…
+      kB M…         
+Downloading h2-4.3.0-py3-none-any.whl (61 kB)
+   ━━ 6… 3… eta 0:0…
+      kB M…         
+Downloading mmh3-5.2.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (103 kB)
+   ━━ 1… 1… eta 0:0…
+      kB M…         
+Downloading pyparsing-3.3.2-py3-none-any.whl (122 kB)
+   ━━ 1… 8… eta 0:0…
+      kB M…         
+Downloading pyroaring-1.0.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+   ━━ 2… 5… eta 0:0…
+      MB M…         
+Downloading rich-14.3.2-py3-none-any.whl (309 kB)
+   ━━ 3… 1… eta 0:0…
+      kB M…         
+Downloading strictyaml-1.7.3-py3-none-any.whl (123 kB)
+   ━━ 1… 1… eta 0:0…
+      kB M…         
+Downloading tenacity-9.1.4-py3-none-any.whl (28 kB)
+Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.5 MB)
+   ━━ 5… 6… eta 0:0…
+      MB M…         
+Downloading packaging-26.0-py3-none-any.whl (74 kB)
+   ━━ 7… 2… eta 0:0…
+      kB M…         
+Downloading hpack-4.1.0-py3-none-any.whl (34 kB)
+Downloading hyperframe-6.1.0-py3-none-any.whl (13 kB)
+Downloading markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+   ━━ 8… 2… eta 0:0…
+      kB M…         
+Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+   ━━ 1… 8… eta 0:0…
+      MB M…         
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+   ━━ 2… 8… eta 0:0…
+      kB M…         
+Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Installing collected packages: strenum, pyroaring, zstandard, websockets, tenacity, six, pyparsing, pygments, propcache, packaging, multidict, mmh3, mdurl, hyperframe, hpack, fsspec, cachetools, yarl, python-dateutil, markdown-it-py, h2, deprecation, strictyaml, rich, realtime, supabase-functions, supabase-auth, pyiceberg, postgrest, storage3, supabase
+  Attempting uninstall: websockets
+    Found existing installation: websockets 16.0
+    Uninstalling websockets-16.0:
+      Successfully uninstalled websockets-16.0
+Successfully installed cachetools-6.2.6 deprecation-2.1.0 fsspec-2026.2.0 h2-4.3.0 hpack-4.1.0 hyperframe-6.1.0 markdown-it-py-4.0.0 mdurl-0.1.2 mmh3-5.2.0 multidict-6.7.1 packaging-26.0 postgrest-2.28.0 propcache-0.4.1 pygments-2.19.2 pyiceberg-0.11.0 pyparsing-3.3.2 pyroaring-1.0.3 python-dateutil-2.9.0.post0 realtime-2.28.0 rich-14.3.2 six-1.17.0 storage3-2.28.0 strenum-0.4.15 strictyaml-1.7.3 supabase-2.28.0 supabase-auth-2.28.0 supabase-functions-2.28.0 tenacity-9.1.4 websockets-15.0.1 yarl-1.22.0 zstandard-0.25.0

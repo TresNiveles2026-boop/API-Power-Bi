@@ -1,0 +1,32 @@
+# ============================================
+# AI-BI Orchestrator — Python Dependencies
+# ============================================
+# WHY: Pinned to minimum versions for reproducibility.
+# Use: pip install -r requirements.txt
+
+# --- Framework & Server ---
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# --- Validation & Config ---
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+
+# --- HTTP Client (async) ---
+httpx>=0.25.0
+
+# --- Azure AD / MSAL ---
+msal>=1.25.0
+
+# --- AI / LLM (Fase 2) ---
+google-generativeai>=0.8.0
+langgraph>=0.2.0
+
+# --- Database (Fase 1) ---
+supabase>=2.0.0
+
+# --- Data / Analytics (Fase 3) ---
+pandas>=2.2.0
+openpyxl>=3.1.0
+python-multipart>=0.0.9

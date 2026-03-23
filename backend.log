@@ -1,0 +1,398 @@
+INFO:     Will watch for changes in these directories: ['/home/cuentacanva0225/Projects/API-Power-Bi']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [77660] using WatchFiles
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [77672]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:45178 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47350 - "GET /health HTTP/1.1" 200 OK
+06:45:22 | INFO     | app.db.supabase_client | ✅ Cliente Supabase inicializado para: https://lubtsdjlxvrivsdbrswn.supabase.co
+06:45:23 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=id%2Cname%2Cschema_version&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+06:45:24 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/semantic_dictionaries?select=%2A&report_id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860&order=table_name.asc%2Ccolumn_name.asc "HTTP/2 200 OK"
+06:45:24 | INFO     | app.services.semantic_service | 📖 Diccionario semántico cargado: report=94e97143-fcba-4d04-b871-9e4e3b0c65ed, tablas=2, columnas=7
+06:45:24 | INFO     | app.services.orchestrator_service | 🚀 Orquestador iniciado: message='Crea un grafico de barras mostrando las ventas por categoria...', report=94e97143-fcba-4d04-b871-9e4e3b0c65ed
+06:45:24 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.1 | Mensaje: Crea un grafico de barras mostrando las ventas por categoria...
+06:45:32 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 938, 'completion_tokens': 182, 'total_tokens': 2122}
+06:45:32 | INFO     | app.ai.graph | 🔀 Router: intent=CREATE_VISUAL, confidence=1.00, reason=El usuario solicita explícitamente la creación de un gráfico de barras para visualizar la relación entre las ventas y las categorías de productos, ambos elementos presentes en el diccionario de datos.
+06:45:32 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.3 | Mensaje: Crea un grafico de barras mostrando las ventas por categoria...
+06:45:36 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 941, 'completion_tokens': 149, 'total_tokens': 1401}
+06:45:36 | INFO     | app.ai.graph | ⚙️ Generator: operation=CREATE, visualType=barChart, dax=(none)
+06:45:36 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.1 | Mensaje: DAX a validar: 
+
+Acción completa: {'operation': 'CREATE', 'visualType': 'barChar...
+06:45:40 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 999, 'completion_tokens': 76, 'total_tokens': 1528}
+06:45:40 | INFO     | app.ai.graph | ✅ Validator: DAX aprobado
+06:45:40 | INFO     | app.ai.graph | 📦 Deliverer: respuesta lista, operation=CREATE
+06:45:40 | INFO     | app.services.orchestrator_service | ⏱️ Orquestador completado en 18521ms
+06:45:40 | INFO     | httpx | HTTP Request: POST https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/audit_events "HTTP/2 201 Created"
+INFO:     127.0.0.1:41254 - "POST /api/v1/chat HTTP/1.1" 200 OK
+06:46:04 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=id%2Cname%2Cschema_version&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+06:46:04 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/semantic_dictionaries?select=%2A&report_id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860&order=table_name.asc%2Ccolumn_name.asc "HTTP/2 200 OK"
+06:46:04 | INFO     | app.services.semantic_service | 📖 Diccionario semántico cargado: report=94e97143-fcba-4d04-b871-9e4e3b0c65ed, tablas=2, columnas=7
+06:46:04 | INFO     | app.services.orchestrator_service | 🚀 Orquestador iniciado: message='Filtra para mostrar solo la categoria Tecnologia...', report=94e97143-fcba-4d04-b871-9e4e3b0c65ed
+06:46:04 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.1 | Mensaje: Filtra para mostrar solo la categoria Tecnologia...
+06:46:14 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 936, 'completion_tokens': 137, 'total_tokens': 2489}
+06:46:14 | INFO     | app.ai.graph | 🔀 Router: intent=FILTER, confidence=1.00, reason=El usuario solicita explícitamente filtrar la información por un valor específico ('Tecnologia') que pertenece a la columna 'Categoria' de la tabla 'Productos'.
+06:46:14 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.3 | Mensaje: Filtra para mostrar solo la categoria Tecnologia...
+06:46:17 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 780, 'completion_tokens': 106, 'total_tokens': 1115}
+06:46:17 | INFO     | app.ai.graph | ⚙️ Generator: operation=FILTER, visualType=, dax=(none)
+06:46:17 | INFO     | app.ai.graph | 📦 Deliverer: respuesta lista, operation=FILTER
+06:46:17 | INFO     | app.services.orchestrator_service | ⏱️ Orquestador completado en 13791ms
+06:46:18 | INFO     | httpx | HTTP Request: POST https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/audit_events "HTTP/2 201 Created"
+INFO:     127.0.0.1:48212 - "POST /api/v1/chat HTTP/1.1" 200 OK
+06:46:38 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=id%2Cname%2Cschema_version&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+06:46:38 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/semantic_dictionaries?select=%2A&report_id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860&order=table_name.asc%2Ccolumn_name.asc "HTTP/2 200 OK"
+06:46:38 | INFO     | app.services.semantic_service | 📖 Diccionario semántico cargado: report=94e97143-fcba-4d04-b871-9e4e3b0c65ed, tablas=2, columnas=7
+06:46:38 | INFO     | app.services.orchestrator_service | 🚀 Orquestador iniciado: message='Por que las ventas son bajas en esa categoria?...', report=94e97143-fcba-4d04-b871-9e4e3b0c65ed
+06:46:38 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.1 | Mensaje: Por que las ventas son bajas en esa categoria?...
+06:46:41 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 937, 'completion_tokens': 64, 'total_tokens': 1227}
+06:46:41 | INFO     | app.ai.graph | 🔀 Router: intent=EXPLAIN, confidence=0.95, reason=El usuario solicita un análisis o explicación sobre el rendimiento de las ventas en una categoría específica, lo cual encaja directamente en la categoría de EXPLAIN para análisis de datos.
+06:46:41 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.3 | Mensaje: Por que las ventas son bajas en esa categoria?...
+06:46:49 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 791, 'completion_tokens': 388, 'total_tokens': 1961}
+06:46:49 | INFO     | app.ai.graph | ⚙️ Generator: operation=EXPLAIN, visualType=, dax=(none)
+06:46:49 | INFO     | app.ai.graph | ✅ Validator: auto-aprobado para intent=EXPLAIN
+06:46:49 | INFO     | app.ai.graph | 📦 Deliverer: respuesta lista, operation=EXPLAIN
+06:46:49 | INFO     | app.services.orchestrator_service | ⏱️ Orquestador completado en 11294ms
+06:46:50 | INFO     | httpx | HTTP Request: POST https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/audit_events "HTTP/2 201 Created"
+INFO:     127.0.0.1:59974 - "POST /api/v1/chat HTTP/1.1" 200 OK
+06:47:10 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=id%2Cname%2Cschema_version&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+06:47:10 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/semantic_dictionaries?select=%2A&report_id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860&order=table_name.asc%2Ccolumn_name.asc "HTTP/2 200 OK"
+06:47:10 | INFO     | app.services.semantic_service | 📖 Diccionario semántico cargado: report=94e97143-fcba-4d04-b871-9e4e3b0c65ed, tablas=2, columnas=7
+06:47:10 | INFO     | app.services.orchestrator_service | 🚀 Orquestador iniciado: message='¿Deseas comparar el precio promedio de los productos de esta categoría frente a ...', report=94e97143-fcba-4d04-b871-9e4e3b0c65ed
+06:47:10 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.1 | Mensaje: ¿Deseas comparar el precio promedio de los productos de esta categoría frente a ...
+06:47:16 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 947, 'completion_tokens': 67, 'total_tokens': 1788}
+06:47:16 | INFO     | app.ai.graph | 🔀 Router: intent=CREATE_VISUAL, confidence=0.95, reason=El usuario solicita una comparación de métricas (precio promedio) entre categorías, lo cual requiere la creación de una visualización o una medida DAX específica para mostrar dicha relación.
+06:47:16 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.3 | Mensaje: ¿Deseas comparar el precio promedio de los productos de esta categoría frente a ...
+06:47:19 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 950, 'completion_tokens': 157, 'total_tokens': 1502}
+06:47:19 | INFO     | app.ai.graph | ⚙️ Generator: operation=CREATE, visualType=barChart, dax=AVERAGE(Productos[Precio])
+06:47:19 | INFO     | app.ai.gemini_client | 🤖 Llamando a Gemini (gemini-3-flash-preview) | Temperature: 0.1 | Mensaje: DAX a validar: AVERAGE(Productos[Precio])
+
+Acción completa: {'operation': 'CREAT...
+06:47:23 | INFO     | app.ai.gemini_client | 📊 Tokens usados: {'prompt_tokens': 1012, 'completion_tokens': 85, 'total_tokens': 1504}
+06:47:23 | INFO     | app.ai.graph | ✅ Validator: DAX aprobado
+06:47:23 | INFO     | app.ai.graph | 📦 Deliverer: respuesta lista, operation=CREATE
+06:47:23 | INFO     | app.services.orchestrator_service | ⏱️ Orquestador completado en 13731ms
+06:47:23 | INFO     | httpx | HTTP Request: POST https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/audit_events "HTTP/2 201 Created"
+INFO:     127.0.0.1:43260 - "POST /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33038 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33038 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [77672]
+INFO:     Stopping reloader process [77660]
+INFO:     Will watch for changes in these directories: ['/home/cuentacanva0225/Projects/API-Power-Bi']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [130320] using WatchFiles
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [130335]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [130335]
+INFO:     Stopping reloader process [130320]
+INFO:     Will watch for changes in these directories: ['/home/cuentacanva0225/Projects/API-Power-Bi']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [130986] using WatchFiles
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [131005]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'scripts/sync_db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [131005]
+WARNING:  WatchFiles detected changes in 'scripts/sync_db.py'. Reloading...
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [131119]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:37130 - "POST /api/v1/embed-config HTTP/1.1" 422 Unprocessable Entity
+18:40:32 | INFO     | app.db.supabase_client | ✅ Cliente Supabase inicializado para: https://lubtsdjlxvrivsdbrswn.supabase.co
+18:40:32 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+18:40:33 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+18:40:33 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:60060 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+/home/cuentacanva0225/Projects/API-Power-Bi/venv/lib/python3.12/site-packages/starlette/_exception_handler.py:63: RuntimeWarning: coroutine 'PowerBIAuthManager.acquire_token' was never awaited
+  await response(scope, receive, sender)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+19:55:20 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+19:55:20 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+19:55:20 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:37838 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+20:06:37 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+20:06:37 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+20:06:37 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:57622 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+21:07:45 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+21:07:45 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+21:07:45 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:57732 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+21:10:59 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+21:11:00 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+21:11:00 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:47306 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+WARNING:  WatchFiles detected changes in 'scripts/check_pbi_access.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [131119]
+WARNING:  WatchFiles detected changes in 'scripts/check_pbi_access.py'. Reloading...
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [141301]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'scripts/check_pbi_access.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [141301]
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [141976]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+03:03:27 | INFO     | app.db.supabase_client | ✅ Cliente Supabase inicializado para: https://lubtsdjlxvrivsdbrswn.supabase.co
+03:03:28 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+03:03:29 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+03:03:29 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:46828 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+/home/cuentacanva0225/Projects/API-Power-Bi/venv/lib/python3.12/site-packages/starlette/_exception_handler.py:63: RuntimeWarning: coroutine 'PowerBIAuthManager.acquire_token' was never awaited
+  await response(scope, receive, sender)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+WARNING:  WatchFiles detected changes in 'scripts/debug_token.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [141976]
+WARNING:  WatchFiles detected changes in 'scripts/debug_token.py'. Reloading...
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [163395]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+03:29:58 | INFO     | app.db.supabase_client | ✅ Cliente Supabase inicializado para: https://lubtsdjlxvrivsdbrswn.supabase.co
+03:29:59 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+03:29:59 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+03:29:59 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:36730 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+/home/cuentacanva0225/Projects/API-Power-Bi/venv/lib/python3.12/site-packages/starlette/_exception_handler.py:63: RuntimeWarning: coroutine 'PowerBIAuthManager.acquire_token' was never awaited
+  await response(scope, receive, sender)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+04:03:07 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+04:03:07 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2 "HTTP/1.1 403 Forbidden"
+04:03:07 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/4c91041e-9c51-4fe2-b018-691c5eccfdf2'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:54010 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+WARNING:  WatchFiles detected changes in 'scripts/debug_token.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [163395]
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [175947]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'scripts/check_pbi_access.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [175947]
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [181883]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [181883]
+INFO:     Stopping reloader process [130986]
+INFO:     Will watch for changes in these directories: ['/home/cuentacanva0225/Projects/API-Power-Bi']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [185126] using WatchFiles
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [185131]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'scripts/debug_topology.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [185131]
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [185855]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+13:33:39 | INFO     | app.db.supabase_client | ✅ Cliente Supabase inicializado para: https://lubtsdjlxvrivsdbrswn.supabase.co
+13:33:42 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+13:33:44 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 403 Forbidden"
+13:33:44 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:51584 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+/home/cuentacanva0225/Projects/API-Power-Bi/venv/lib/python3.12/site-packages/starlette/_exception_handler.py:63: RuntimeWarning: coroutine 'PowerBIAuthManager.acquire_token' was never awaited
+  await response(scope, receive, sender)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+INFO:     127.0.0.1:46000 - "GET /health HTTP/1.1" 200 OK
+13:35:33 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+13:35:34 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 403 Forbidden"
+13:35:34 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:46002 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+13:40:16 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+INFO:     127.0.0.1:59064 - "GET /health HTTP/1.1" 200 OK
+13:40:16 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 403 Forbidden"
+13:40:16 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:59050 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:37640 - "GET /health HTTP/1.1" 200 OK
+13:47:25 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+13:47:26 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 403 Forbidden"
+13:47:26 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:37654 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:60548 - "GET /health HTTP/1.1" 200 OK
+13:54:46 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+13:54:46 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 403 Forbidden"
+13:54:46 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:60560 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:53280 - "GET /health HTTP/1.1" 200 OK
+14:21:23 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+14:21:23 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 403 Forbidden"
+14:21:23 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:53288 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:35626 - "GET /health HTTP/1.1" 200 OK
+14:25:42 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+14:25:42 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 403 Forbidden"
+14:25:42 | ERROR    | app.api.v1.routes | ❌ Error generando embed config: Client error '403 Forbidden' for url 'https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+INFO:     127.0.0.1:40964 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 500 Internal Server Error
+WARNING:  WatchFiles detected changes in 'app/services/embed_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [185855]
+/home/cuentacanva0225/Projects/API-Power-Bi/app/ai/gemini_client.py:21: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [209800]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+14:27:42 | INFO     | app.auth.power_bi_auth | 🔄 Solicitando nuevo token a Azure AD...
+14:27:43 | INFO     | app.auth.power_bi_auth | ✅ Token obtenido exitosamente (expira en 3599 segundos)
+14:27:43 | INFO     | app.db.supabase_client | ✅ Cliente Supabase inicializado para: https://lubtsdjlxvrivsdbrswn.supabase.co
+14:27:43 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+14:27:44 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 200 OK"
+14:27:44 | INFO     | httpx | HTTP Request: POST https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1/GenerateToken "HTTP/1.1 200 OK"
+14:27:44 | INFO     | app.services.embed_service | 🔴 Embed config LIVE generada para reporte a5ca3214-d6c7-433f-be88-2877d5b931c1
+INFO:     127.0.0.1:58112 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58496 - "GET /health HTTP/1.1" 200 OK
+14:28:06 | INFO     | httpx | HTTP Request: GET https://lubtsdjlxvrivsdbrswn.supabase.co/rest/v1/reports?select=pbi_report_id%2Cpbi_workspace_id%2Cpbi_dataset_id&id=eq.94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=eq.9d36ff08-691e-4f7d-b1bf-049abf374860 "HTTP/2 200 OK"
+14:28:07 | INFO     | httpx | HTTP Request: GET https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1 "HTTP/1.1 200 OK"
+14:28:07 | INFO     | httpx | HTTP Request: POST https://api.powerbi.com/v1.0/myorg/groups/a688fc36-0b35-4f29-a971-d07545b2e776/reports/a5ca3214-d6c7-433f-be88-2877d5b931c1/GenerateToken "HTTP/1.1 200 OK"
+14:28:07 | INFO     | app.services.embed_service | 🔴 Embed config LIVE generada para reporte a5ca3214-d6c7-433f-be88-2877d5b931c1
+INFO:     127.0.0.1:58512 - "POST /api/v1/embed-config?report_id=94e97143-fcba-4d04-b871-9e4e3b0c65ed&tenant_id=9d36ff08-691e-4f7d-b1bf-049abf374860 HTTP/1.1" 200 OK

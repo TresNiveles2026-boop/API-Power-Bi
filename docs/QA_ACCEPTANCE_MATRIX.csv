@@ -1,0 +1,21 @@
+ID,Prompt de prueba,Operación esperada,error_code esperado,Resultado funcional esperado,Criterio PASS
+R1,Crea un gráfico de barras de Stock disponible por Tipo almacén,CREATE,null,Visual creado correctamente,Se crea 1 visual con datos
+R2,Repite el mismo prompt R1,CREATE,null,Segundo visual creado con título distinto,No hay títulos idénticos
+R3,"Muéstrame Stock disponible por Material, filtrando Tipo almacén = 400",CREATE,null,Visual filtrado correctamente,Filtro aplicado y datos consistentes
+R4,"Crea un gráfico circular de Stock disponible por Tipo almacén para el Lote ""3021""",CREATE,null,"Pie chart válido, sin crash",Visual renderiza sin error D3/SDK
+R5,Muéstrame Stock disponible por Ubicación excluyendo Tipo almacén 400,CREATE,null,Filtro negativo aplicado,Dataset excluye almacén 400
+R6,"Muéstrame Stock disponible por Material para Tipo almacén 130 y Lote ""4620""",CREATE,MULTI_FILTER_INTERSECTION_NOTICE (informativo),Se aplica disclaimer por 2 filtros,explanation contiene nota AND
+R7,Muéstrame stock por Ubicación donde Lote > 2000,ERROR (o retry->ERROR),FILTER_TYPE_MISMATCH,Rechazo controlado por tipo string,No se intenta filtro SDK inválido
+R8,Compara Stock disponible de este año vs año pasado por mes (sin tabla fecha explícita),ERROR (o retry->ERROR),TIME_INTELLIGENCE_REQUIRES_DATE_TABLE,Bloqueo de TI inseguro,No se ejecuta DAX TI
+R9,"Crea un dashboard con 2 visuales: barras de Stock por Tipo almacén y líneas por Fecha de stock",CREATE (multi-acción),null,Se crean 2 visuales,actions.length >= 2 y ambos visibles
+R10,"Actualiza el gráfico ""<título exacto de R1>"": oculta leyenda y cambia título a ""Stock por Almacén""",UPDATE,null,Formato actualizado en visual objetivo,Leyenda/título cambiados en visual correcto
+R11,"Mueve el gráfico ""<título exacto de R1>"" arriba izquierda y hazlo más ancho",UPDATE,null,Solo layout actualizado,Cambia posición/tamaño sin side effects no pedidos
+R12,"En el visual ""<título exacto>"", cambia categoría a Ubicación y mantén métrica Stock disponible",UPDATE,null,DataRoles actualizados,Eje/categoría cambia realmente (no solo título)
+R13,"Elimina el visual ""<título exacto>""",DELETE,null,Visual eliminado,Ya no aparece en lienzo/contexto
+R14,Elimina el visual VisualInexistenteXYZ,ERROR,TARGET_NOT_FOUND,Error controlado,Mensaje claro sin mutar otros visuales
+R15,"Explica el comportamiento del visual ""<título exacto>"" en 1 párrafo ejecutivo",EXPLAIN,null,Devuelve insight híbrido real,Texto final viene de /api/v1/explain
+R16,"Explica el comportamiento del visual ""Ventas"" (cuando hay 2+ similares)",ERROR,TARGET_AMBIGUOUS,Solicita desambiguación,No elige visual al azar
+R17,"UPDATE sin objetivo claro: ""Oculta la leyenda del gráfico"" con varios gráficos",ERROR,TARGET_AMBIGUOUS,Bloqueo seguro,No muta ningún visual incorrecto
+R18,Muestra margen bruto por proveedor y canal (columnas no existen),ERROR,SEMANTIC_FIELD_NOT_FOUND,Error semántico controlado,No crea visual inventado
+R19,Prompt malformado del LLM (simulado) que retorne nulls en campos opcionales,ERROR o acción normalizada,SCHEMA_VALIDATION_FAILED (si falla),Sin crash 500,API responde 200 con acción controlada
+R20,Caso de regresión rápida: R1 + R3 + R4 en secuencia,CREATE,null,Flujo base intacto,Sin degradación del CREATE histórico
