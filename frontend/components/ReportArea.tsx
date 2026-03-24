@@ -52,15 +52,8 @@ export default function ReportArea({ lastAction, actions, lastResult }: ReportAr
                 const reportId = "94e97143-fcba-4d04-b871-9e4e3b0c65ed"; // Internal ID
                 const tenantId = "9d36ff08-691e-4f7d-b1bf-049abf374860"; // Internal ID
 
-                const res = await fetch(`/api/v1/embed-config`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        report_id: reportId,
-                        tenant_id: tenantId,
-                    }),
+                const res = await fetch(`/api/v1/embed-config?report_id=${reportId}&tenant_id=${tenantId}`, {
+                    method: "POST"
                 });
 
                 if (!res.ok) {
