@@ -44,13 +44,12 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# WHY: CORS configurable. En desarrollo, permite localhost:3002.
-# En producción, se configura via CORS_ORIGINS en .env.
-_cors_origins: list[str] = []
-if settings.cors_origins:
-    _cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
-elif settings.app_debug:
-    _cors_origins = ["*"]
+# WHY: CORS configurado estrictamente para los dominios de producción y desarrollo local.
+_cors_origins = [
+    "http://localhost:5173",
+    "https://promtbi.com",
+    "https://www.promtbi.com",
+]
 
 app.add_middleware(
     CORSMiddleware,
