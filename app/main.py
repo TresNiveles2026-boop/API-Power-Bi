@@ -48,7 +48,7 @@ app = FastAPI(
 _cors_origins = [
     "http://localhost:5173",
     "https://promtbi.com",
-    "https://www.promtbi.com",
+    "https://www.promtbi.com"
 ]
 
 app.add_middleware(

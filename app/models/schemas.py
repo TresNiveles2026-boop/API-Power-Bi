@@ -70,6 +70,12 @@ class ReportResponse(BaseModel):
     created_at: datetime
 
 
+class EmbedConfigRequest(BaseModel):
+    """Input para obtener configuración de embed de Power BI."""
+    report_id: str = Field(..., examples=["uuid-del-reporte"])
+    tenant_id: str = Field(..., examples=["uuid-del-tenant"])
+
+
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║                    SEMANTIC DICTIONARY                         ║
 # ╚══════════════════════════════════════════════════════════════════╝

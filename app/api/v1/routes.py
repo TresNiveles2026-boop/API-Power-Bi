@@ -27,6 +27,7 @@ from app.auth.rate_limiter import rate_limiter
 from app.db.supabase_client import get_supabase_client
 from app.models.schemas import (
     ColumnSchema,
+    EmbedConfigRequest,
     ErrorResponse,
     ReportCreate,
     ReportResponse,
@@ -817,8 +818,7 @@ async def explain_visual(
     responses={404: {"model": ErrorResponse}},
 )
 async def embed_config(
-    report_id: str,
-    tenant_id: str,
+    payload: EmbedConfigRequest,
     request: Request,
     user: CurrentUser = Depends(get_current_user),
 ) -> dict:
@@ -827,13 +827,13 @@ async def embed_config(
 
     Phase 5: Rate limited (10/min), authenticated.
     """
-    require_tenant_match(user, tenant_id)
+    require_tenant_match(user, payload.tenant_id)
     rate_limiter.check(user.tenant_id, "embed")
 
     try:
         config = await get_embed_config(
-            report_id=report_id,
-            tenant_id=tenant_id,
+            report_id=payload.report_id,
+            tenant_id=payload.tenant_id,
         )
 
         await log_audit_event(
@@ -841,7 +841,7 @@ async def embed_config(
             endpoint="/api/v1/embed-config",
             method="POST",
             api_key_id=user.api_key_id,
-            request_summary={"report_id": report_id},
+            request_summary={"report_id": payload.report_id},
             ip_address=request.client.host if request.client else None,
         )
 
