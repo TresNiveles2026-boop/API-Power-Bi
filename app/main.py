@@ -76,7 +76,21 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     con un mensaje útil, no un stack trace crudo.
     """
     # Importar aquí para evitar circular imports
-    from app.ai.gemini_client import GeminiExhaustedError, GeminiTimeoutError
+    from app.ai.gemini_client import GeminiExhaustedError, GeminiParseError, GeminiTimeoutError
+
+    # ── Gemini Parse Error → HTTP 400 (no es error del servidor) ──
+    if isinstance(exc, GeminiParseError):
+        logger.warning("🧩 Gemini respondió con formato no parseable: %s", exc)
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": (
+                    "La IA no pudo generar una respuesta estructurada para tu solicitud. "
+                    "Intenta reformular tu pregunta de forma más específica."
+                ),
+                "error_type": "GEMINI_PARSE_ERROR",
+            },
+        )
 
     # ── Gemini Timeout → HTTP 504 ────────────────────────────────
     if isinstance(exc, GeminiTimeoutError):

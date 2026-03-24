@@ -480,7 +480,7 @@ async def chat(
             visual_context=payload.visual_context,
         )
     except Exception as exc:
-        # Degradación controlada: nunca romper el chat por timeouts/transitorios del LLM.
+        # Degradación controlada: nunca romper el chat por errores del pipeline de IA.
         from app.ai.gemini_client import GeminiExhaustedError, GeminiTimeoutError
 
         if isinstance(exc, (GeminiExhaustedError, GeminiTimeoutError)):
@@ -503,7 +503,35 @@ async def chat(
                 retries_used=3,
                 conversation_id=payload.conversation_id,
             )
-        raise
+
+        # ── PARACHUTE (Safety Net de ruta): ──
+        # Si algo escapa del orquestador, lo capturamos aquí como WARNING
+        # para que Cloud Run NO dispare alertas por falsos positivos.
+        logger.warning(
+            "⚠️ Error no crítico en /chat (prompt: '%.50s...'): %s",
+            payload.message,
+            exc,
+        )
+        action = VisualAction(
+            operation="ERROR",
+            explanation=(
+                "Ocurrió un problema procesando tu solicitud. "
+                "¿Podrías reformular tu pregunta de forma más específica?"
+            ),
+            follow_up_questions=[
+                "¿Qué datos te gustaría visualizar?",
+                "¿Quieres que lo intente de nuevo?",
+            ],
+        )
+        return ChatResponse(
+            status="success",
+            action=action,
+            actions=[action],
+            intent="ERROR",
+            confidence=0.0,
+            retries_used=0,
+            conversation_id=payload.conversation_id,
+        )
 
     await log_audit_event(
         tenant_id=user.tenant_id,

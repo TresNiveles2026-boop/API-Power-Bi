@@ -173,8 +173,41 @@ async def process_chat_message(
             f"El orquestador tardó más de {ORCHESTRATOR_TIMEOUT_SECONDS}s"
         )
     except (GeminiTimeoutError, GeminiExhaustedError):
-        # Dejar que estos errores se propaguen al global handler de main.py
+        # Dejar que estos errores se propaguen al handler del chat route
         raise
+    except Exception as exc:
+        # ── PARACHUTE: Degradación controlada para errores de IA ──
+        # WHY: Si el pipeline de LangGraph falla por cualquier razón
+        # (JSON roto del LLM, Pydantic validation, KeyError, etc.),
+        # NO debemos devolver un 500. Logueamos como WARNING para
+        # que Google Cloud Run NO dispare alertas por falsos positivos.
+        latency_ms = int((time.time() - start_time) * 1000)
+        logger.warning(
+            "⚠️ Error no crítico en pipeline de IA (prompt: '%.80s...'): %s",
+            message,
+            exc,
+        )
+        fallback_action = VisualAction(
+            operation="ERROR",
+            explanation=(
+                "No pude generar el gráfico con esa descripción. "
+                "¿Podrías ser más específico con los datos que necesitas? "
+                "Por ejemplo: 'Muéstrame ventas por región en un gráfico de barras'."
+            ),
+            follow_up_questions=[
+                "¿Qué datos te gustaría visualizar?",
+                "¿Quieres que lo intente con una pregunta más simple?",
+            ],
+        )
+        return ChatResponse(
+            status="success",
+            action=fallback_action,
+            actions=[fallback_action],
+            intent="ERROR",
+            confidence=0.0,
+            retries_used=0,
+            conversation_id=conversation_id,
+        )
 
     # 6. Calcular latencia
     latency_ms = int((time.time() - start_time) * 1000)
