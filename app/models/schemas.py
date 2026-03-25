@@ -192,3 +192,32 @@ class ErrorResponse(BaseModel):
     status: str = "error"
     message: str
     detail: str = ""
+
+
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║                    MEASURE TEMPLATES                           ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+
+class MeasureTemplate(BaseModel):
+    """
+    Plantilla determinista de medida DAX (para creación manual guiada).
+
+    WHY: Algunas métricas (p. ej. DistinctCount en cards) pueden estar
+    bloqueadas por el SDK/tenant. En esos casos guiamos al usuario a crear
+    una medida en Power BI Desktop, una sola vez, y luego la reutilizamos.
+    """
+    id: str = Field(..., examples=["distinct_count"])
+    display_name: str = Field(..., examples=["Materiales únicos"])
+    description: str = Field(default="", examples=["Cuenta valores distintos de una columna."])
+    dax_template: str = Field(
+        ...,
+        examples=["DISTINCTCOUNT('{table}'[{column}])"],
+        description="DAX con placeholders: {table}, {column}, {date_table}, {date_col}, {base_measure}, {category_column}.",
+    )
+    required_vars: list[str] = Field(default_factory=list, examples=[["table", "column"]])
+
+
+class MeasureTemplateListResponse(BaseModel):
+    status: str = "success"
+    templates: list[MeasureTemplate] = Field(default_factory=list)

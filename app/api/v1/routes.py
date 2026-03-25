@@ -29,6 +29,7 @@ from app.models.schemas import (
     ColumnSchema,
     EmbedConfigRequest,
     ErrorResponse,
+    MeasureTemplateListResponse,
     ReportCreate,
     ReportResponse,
     SemanticDictionaryResponse,
@@ -58,6 +59,7 @@ from app.services.semantic_service import (
     save_uploaded_schema,
     sync_schema,
 )
+from app.services.measure_template_service import get_measure_templates
 from app.services.pbi_schema_sync_service import (
     AdminSchemaBlockedError,
     SchemaReadBlockedError,
@@ -72,6 +74,15 @@ router = APIRouter(prefix="/api/v1", tags=["Phase 1 — Semantic Layer"])
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║                         TENANTS                                ║
 # ╚══════════════════════════════════════════════════════════════════╝
+
+
+@router.get(
+    "/measure-templates",
+    response_model=MeasureTemplateListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def list_measure_templates(_: CurrentUser = Depends(get_current_user)) -> MeasureTemplateListResponse:
+    return MeasureTemplateListResponse(templates=get_measure_templates())
 
 
 @router.post(
