@@ -336,6 +336,33 @@ function mapAggregationFunction(aggregation: string): string | null {
     return mapping[normalized] || null;
 }
 
+function buildSimpleAggDax(aggregationFunction: string, table: string, column: string): string | null {
+    const agg = String(aggregationFunction || "").trim().toLowerCase();
+    const t = String(table || "").trim();
+    const c = String(column || "").trim();
+    if (!t || !c) return null;
+
+    const ref = `'${t}'[${c}]`;
+    switch (agg) {
+        case "sum":
+            return `SUM(${ref})`;
+        case "average":
+        case "avg":
+            return `AVERAGE(${ref})`;
+        case "count":
+            // COUNT() falla en texto; COUNTA es segura para texto/número.
+            return `COUNTA(${ref})`;
+        case "distinctcount":
+            return `DISTINCTCOUNT(${ref})`;
+        case "min":
+            return `MIN(${ref})`;
+        case "max":
+            return `MAX(${ref})`;
+        default:
+            return null;
+    }
+}
+
 function parseTableColumnRef(fieldRef: string): { table: string; column: string } | null {
     const match = fieldRef.match(/^\s*'?([^'\[]+?)'?\s*\[\s*([^\]]+)\s*]\s*$/);
     if (!match) return null;
@@ -682,6 +709,46 @@ async function addFieldWithRoleFallback(
                     // continue to existing fallbacks
                 }
             }
+
+            // Card macro-fix: el SDK suele rechazar bindings de columna para agregaciones
+            // como DistinctCount/Count/Average (aunque vengan con aggregationFunction).
+            // Fallback determinista: inyectar como measure inline con DAX simple.
+            if (
+                isCardVisual &&
+                basePayload &&
+                basePayload.$schema === "http://powerbi.com/product/schema#column" &&
+                typeof basePayload.aggregationFunction === "string" &&
+                String(basePayload.aggregationFunction).toLowerCase() !== "sum"
+            ) {
+                const key = `${roleCandidate}|${basePayload.aggregationFunction}`;
+                if (!triedMeasureFallbackRoles.has(key)) {
+                    triedMeasureFallbackRoles.add(key);
+                    const expr = buildSimpleAggDax(basePayload.aggregationFunction, basePayload.table, basePayload.column);
+                    if (expr) {
+                        try {
+                            const measurePayload = {
+                                $schema: "http://powerbi.com/product/schema#measure",
+                                table: basePayload.table,
+                                name:
+                                    daxName ||
+                                    `Medida_${String(basePayload.aggregationFunction)}_${String(basePayload.column)}`.slice(0, 120),
+                                expression: expr,
+                            };
+                            if (process.env.NODE_ENV !== "production") {
+                                console.log(`🧩 Card agg fallback measure → addDataField("${roleCandidate}", ${JSON.stringify(measurePayload)})`);
+                            }
+                            await visual.addDataField(roleCandidate, measurePayload);
+                            await applyCardFieldFormatIfNeeded(visual, pbiVisualType, roleCandidate);
+                            return { ok: true };
+                        } catch (fallbackErr: any) {
+                            if (process.env.NODE_ENV !== "production") {
+                                console.warn("⚠️ Card agg fallback (measure) falló:", fallbackErr?.message || fallbackErr);
+                            }
+                        }
+                    }
+                }
+            }
+
             if (
                 isCardVisual &&
                 simpleAggInfo &&
