@@ -720,6 +720,19 @@ async function addFieldWithRoleFallback(
                 typeof basePayload.aggregationFunction === "string" &&
                 String(basePayload.aggregationFunction).toLowerCase() !== "sum"
             ) {
+                // DistinctCount en cards falla en algunos tenants. Fallback determinista:
+                // degradar a Count (no-dedup) para evitar tarjetas vacías.
+                // Nota: el backend/UI debe indicar esta degradación si el usuario pidió "únicos".
+                if (String(basePayload.aggregationFunction).toLowerCase() === "distinctcount") {
+                    try {
+                        await visual.addDataField(roleCandidate, { ...basePayload, aggregationFunction: "Count" });
+                        await applyCardFieldFormatIfNeeded(visual, pbiVisualType, roleCandidate);
+                        return { ok: true };
+                    } catch {
+                        // continue to measure fallback
+                    }
+                }
+
                 const key = `${roleCandidate}|${basePayload.aggregationFunction}`;
                 if (!triedMeasureFallbackRoles.has(key)) {
                     triedMeasureFallbackRoles.add(key);
