@@ -326,8 +326,8 @@ function mapAggregationFunction(aggregation: string): string | null {
     const normalized = String(aggregation || "").trim().toLowerCase();
     const mapping: Record<string, string> = {
         sum: "Sum",
-        average: "Avg",
-        avg: "Avg",
+        average: "Average",
+        avg: "Average",
         count: "Count",
         min: "Min",
         max: "Max",
@@ -476,11 +476,14 @@ function getRoleCandidatesForVisual(
         if (visual === "clusteredcolumnchart" || visual === "columnchart" || visual === "linechart" || visual === "areachart") return ["Y"];
         if (visual === "piechart" || visual === "donutchart") return ["Values", "Y"];
         if (visual === "gauge") return ["Value", "Target", "Y", "Values"];
+        // Card: en muchos tenants/SDKs el rol efectivo es "Fields" (no "Values").
+        if (visual === "card") return ["Fields", "Values", "Y"];
         return [normalizedRole, "Y", "Values"];
     }
 
     if (visual === "piechart" || visual === "donutchart") return ["Legend", "Category", "Series", "Details"];
     if (visual === "gauge") return ["Target", "Maximum", "Minimum", "Value"];
+    if (visual === "card") return ["Fields", "Values", "Y"];
     return [normalizedRole, "Category", "Axis", "Series", "Legend", "Details"];
 }
 
@@ -511,6 +514,21 @@ function normalizeDaxExpressionForVisualCalculation(daxExpression: string, daxNa
     });
 
     return result;
+}
+
+async function getSupportedRoleNames(visual: any): Promise<string[]> {
+    if (!visual || typeof visual.getCapabilities !== "function") return [];
+    try {
+        const caps = await visual.getCapabilities();
+        const roles = (caps as any)?.dataRoles;
+        if (!Array.isArray(roles)) return [];
+        const names = roles
+            .map((r: any) => String(r?.name || r?.displayName || "").trim())
+            .filter(Boolean);
+        return Array.from(new Set(names));
+    } catch {
+        return [];
+    }
 }
 
 async function applyCardFieldFormatIfNeeded(
@@ -563,7 +581,13 @@ async function addFieldWithRoleFallback(
 
     const isMeasure = normalized.isMeasureField && !isLikelyCategoryRole(roleName);
     const isCardVisual = String(pbiVisualType || "").trim().toLowerCase() === "card";
-    const candidates = getRoleCandidatesForVisual(pbiVisualType, roleName, isMeasure);
+    let candidates = getRoleCandidatesForVisual(pbiVisualType, roleName, isMeasure);
+    const supported = await getSupportedRoleNames(visual);
+    if (supported.length) {
+        const supportedSet = new Set(supported.map((s) => s.toLowerCase()));
+        const filtered = candidates.filter((c) => supportedSet.has(String(c).toLowerCase()));
+        if (filtered.length) candidates = filtered;
+    }
     const daxExpression = normalizeDaxExpressionForVisualCalculation(
         String(action?.dax || ""),
         String(action?.dax_name || ""),
@@ -578,24 +602,27 @@ async function addFieldWithRoleFallback(
     // → Solo se permite conversión de DAX simple (SUM/AVG) a column binding.
     const SIMPLE_AGG_RE = /^(SUM|AVERAGE|AVG|COUNT|COUNTA|MIN|MAX)\s*\(\s*'([^']+)'\[([^\]]+)\]\s*\)$/i;
     const simpleAggMatch = daxExpression ? SIMPLE_AGG_RE.exec(daxExpression) : null;
+    const simpleAggInfo = simpleAggMatch ? {
+        fn: simpleAggMatch[1],
+        table: simpleAggMatch[2],
+        column: simpleAggMatch[3],
+        mappedAgg: mapAggregationFunction(simpleAggMatch[1]) || "Sum",
+        daxExpression,
+    } : null;
+    const triedMeasureFallbackRoles = new Set<string>();
 
     for (const roleCandidate of candidates) {
+        let basePayload: any = null;
         try {
-            let basePayload: any;
-
-            if (simpleAggMatch && isMeasure) {
+            if (simpleAggInfo && isMeasure) {
                 // DAX simple (SUM/AVG/COUNT) → Column binding con aggregationFunction
-                const aggFn = simpleAggMatch[1]; // SUM, AVERAGE, etc.
-                const aggTable = simpleAggMatch[2]; // tabla (ya resuelta por normalizeDax)
-                const aggColumn = simpleAggMatch[3]; // columna
-                const mappedAgg = mapAggregationFunction(aggFn) || "Sum";
                 basePayload = {
                     $schema: "http://powerbi.com/product/schema#column",
-                    table: aggTable,
-                    column: aggColumn,
-                    aggregationFunction: mappedAgg,
+                    table: simpleAggInfo.table,
+                    column: simpleAggInfo.column,
+                    aggregationFunction: simpleAggInfo.mappedAgg,
                 };
-                console.log(`🔄 DAX simple convertido a column binding: ${daxExpression} → {table: "${aggTable}", column: "${aggColumn}", agg: "${mappedAgg}"}`);
+                console.log(`🔄 DAX simple convertido a column binding: ${simpleAggInfo.daxExpression} → {table: "${simpleAggInfo.table}", column: "${simpleAggInfo.column}", agg: "${simpleAggInfo.mappedAgg}"}`);
             } else if (normalized.isMeasureField && typeof roleValue === "object" && roleValue !== null && mapAggregationFunction(String((roleValue as DataRoleBinding).aggregation || ""))) {
                 basePayload = {
                     $schema: "http://powerbi.com/product/schema#column",
@@ -637,6 +664,50 @@ async function addFieldWithRoleFallback(
             await applyCardFieldFormatIfNeeded(visual, pbiVisualType, roleCandidate);
             return { ok: true };
         } catch (err: any) {
+            // Card: algunos tenants/SDKs aceptan "Average" y otros "Avg".
+            // Intentar ambas variantes antes de caer al fallback de measure.
+            if (
+                isCardVisual &&
+                basePayload &&
+                basePayload.$schema === "http://powerbi.com/product/schema#column" &&
+                typeof basePayload.aggregationFunction === "string" &&
+                (basePayload.aggregationFunction === "Average" || basePayload.aggregationFunction === "Avg")
+            ) {
+                const altAgg = basePayload.aggregationFunction === "Average" ? "Avg" : "Average";
+                try {
+                    await visual.addDataField(roleCandidate, { ...basePayload, aggregationFunction: altAgg });
+                    await applyCardFieldFormatIfNeeded(visual, pbiVisualType, roleCandidate);
+                    return { ok: true };
+                } catch {
+                    // continue to existing fallbacks
+                }
+            }
+            if (
+                isCardVisual &&
+                simpleAggInfo &&
+                simpleAggInfo.mappedAgg !== "Sum" &&
+                !triedMeasureFallbackRoles.has(roleCandidate)
+            ) {
+                triedMeasureFallbackRoles.add(roleCandidate);
+                try {
+                    const measurePayload = {
+                        $schema: "http://powerbi.com/product/schema#measure",
+                        table: simpleAggInfo.table,
+                        name: daxName || `Medida_${simpleAggInfo.mappedAgg}_${simpleAggInfo.column}`.slice(0, 120),
+                        expression: simpleAggInfo.daxExpression,
+                    };
+                    if (process.env.NODE_ENV !== "production") {
+                        console.log(`🧩 Card fallback measure → addDataField("${roleCandidate}", ${JSON.stringify(measurePayload)})`);
+                    }
+                    await visual.addDataField(roleCandidate, measurePayload);
+                    await applyCardFieldFormatIfNeeded(visual, pbiVisualType, roleCandidate);
+                    return { ok: true };
+                } catch (fallbackErr: any) {
+                    if (process.env.NODE_ENV !== "production") {
+                        console.warn("⚠️ Card measure fallback falló:", fallbackErr?.message || fallbackErr);
+                    }
+                }
+            }
             // DIAGNÓSTICO: Log del error exacto del SDK (antes era silencioso)
             if (process.env.NODE_ENV !== "production") {
                 console.warn(`⚠️ addDataField("${roleCandidate}") falló:`, err?.message || err);

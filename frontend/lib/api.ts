@@ -10,7 +10,9 @@
 
 import type { ChatRequest, ChatResponse, Conversation } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+// En browser preferimos same-origin (Next rewrites/proxy) para evitar CORS.
+const API_BASE = typeof window === "undefined" ? RAW_API_BASE : "";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
 
 // WHY: El ciclo LangGraph puede tardar >40s en LIVE mode.

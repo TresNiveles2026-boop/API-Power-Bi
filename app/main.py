@@ -46,6 +46,10 @@ app = FastAPI(
 
 # WHY: CORS configurado estrictamente para los dominios de producción y desarrollo local.
 _cors_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3002",
+    "http://127.0.0.1:3002",
     "http://localhost:5173",
     "https://promtbi.com",
     "https://www.promtbi.com"
