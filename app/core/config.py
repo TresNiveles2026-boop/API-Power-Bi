@@ -56,6 +56,11 @@ class Settings(BaseSettings):
     dev_tenant_id: str = "9d36ff08-691e-4f7d-b1bf-049abf374860"
     cors_origins: str = ""  # Comma-separated: "http://localhost:3002,https://app.example.com"
 
+    # ── Timeouts (UX / Cloud Run) ──────────────────────────────────
+    # WHY: El frontend (Vercel) suele tener timeouts agresivos; si el orquestador
+    # tarda demasiado, devolvemos una respuesta controlada en lugar de colgar la request.
+    chat_http_timeout_seconds: int = 18
+
     # ── Validators ──────────────────────────────────────────────────
 
     @field_validator("pbi_api_mode", mode="before")

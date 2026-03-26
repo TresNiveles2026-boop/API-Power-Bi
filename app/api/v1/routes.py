@@ -14,6 +14,8 @@ enforce tenant isolation, and log audit events.
 from __future__ import annotations
 
 import logging
+import asyncio
+import contextlib
 import io
 import json
 import zipfile
@@ -483,13 +485,45 @@ async def chat(
     rate_limiter.check(user.tenant_id, "chat")
 
     try:
-        response = await process_chat_message(
-            message=payload.message,
-            report_id=payload.report_id,
-            tenant_id=payload.tenant_id,
-            conversation_id=payload.conversation_id,
-            visual_context=payload.visual_context,
+        # WHY: El orquestador puede tardar (Router/Generator/Validator + retries).
+        # Para no romper UX en Vercel (timeout de cliente), imponemos un presupuesto
+        # duro a nivel HTTP y devolvemos un ERROR controlado.
+        from app.core.config import settings
+
+        task = asyncio.create_task(
+            process_chat_message(
+                message=payload.message,
+                report_id=payload.report_id,
+                tenant_id=payload.tenant_id,
+                conversation_id=payload.conversation_id,
+                visual_context=payload.visual_context,
+            )
         )
+        try:
+            response = await asyncio.wait_for(
+                task,
+                timeout=settings.chat_http_timeout_seconds,
+            )
+        except asyncio.TimeoutError:
+            task.cancel()
+            with contextlib.suppress(Exception):
+                await task
+            action = VisualAction(
+                operation="ERROR",
+                visualType=None,
+                title="",
+                explanation="La solicitud tardó demasiado. Intenta de nuevo.",
+                follow_up_questions=["¿Quieres que lo intente de nuevo?"],
+            )
+            return ChatResponse(
+                status="success",
+                action=action,
+                actions=[action],
+                intent="ERROR",
+                confidence=0.0,
+                retries_used=0,
+                conversation_id=payload.conversation_id,
+            )
     except Exception as exc:
         # Degradación controlada: nunca romper el chat por errores del pipeline de IA.
         from app.ai.gemini_client import GeminiExhaustedError, GeminiTimeoutError
