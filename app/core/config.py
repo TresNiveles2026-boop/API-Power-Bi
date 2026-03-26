@@ -59,7 +59,8 @@ class Settings(BaseSettings):
     # ── Timeouts (UX / Cloud Run) ──────────────────────────────────
     # WHY: El frontend (Vercel) suele tener timeouts agresivos; si el orquestador
     # tarda demasiado, devolvemos una respuesta controlada en lugar de colgar la request.
-    chat_http_timeout_seconds: int = 18
+    # Default aligned with WEB-PROMBI client timeout (120s). Keep a small buffer.
+    chat_http_timeout_seconds: int = 110
 
     # ── Validators ──────────────────────────────────────────────────
 
