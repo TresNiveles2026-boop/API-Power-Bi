@@ -506,7 +506,9 @@ async def chat(
             )
         except asyncio.TimeoutError:
             task.cancel()
-            with contextlib.suppress(Exception):
+            # NOTE: asyncio.CancelledError hereda de BaseException (py3.13),
+            # así que debemos suprimir BaseException para evitar 500 post-cancel.
+            with contextlib.suppress(BaseException):
                 await task
             action = VisualAction(
                 operation="ERROR",
