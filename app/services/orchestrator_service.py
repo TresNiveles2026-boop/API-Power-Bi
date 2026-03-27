@@ -189,7 +189,8 @@ def _attach_kpi_requirements(actions: list[VisualAction], user_message: str) -> 
                     table=_dax_escape_single_quotes(table),
                     column=column,
                 )
-                dax_suggestion = f"{suggested_measure_name} = {expr}"
+                # DAX SOLO expresión; el frontend compone "Nombre = Expresión" al copiar.
+                dax_suggestion = expr
 
                 act.requirements = KpiRequirements(
                     needs_measure=True,
@@ -233,7 +234,8 @@ def _attach_kpi_requirements(actions: list[VisualAction], user_message: str) -> 
                     suggested_measure_name=suggested_measure_name,
                     table=cat_table,
                     column=cat_col,
-                    dax_suggestion=f"{suggested_measure_name} = {expr}",
+                    dax_suggestion=expr,
+                    format_hint="percentage",
                 )
                 continue
 
@@ -251,7 +253,7 @@ def _attach_kpi_requirements(actions: list[VisualAction], user_message: str) -> 
                     suggested_measure_name=suggested_measure_name,
                     table=cat_table,
                     column=cat_col,
-                    dax_suggestion=f"{suggested_measure_name} = {expr}",
+                    dax_suggestion=expr,
                 )
         except Exception:
             # Nunca rompemos la respuesta por enrichment de requirements.
@@ -440,7 +442,7 @@ def _build_deterministic_percent_of_total_action(
     )
 
     suggested_measure_name = f"% {value_col} del total"
-    dax_suggestion = f"{suggested_measure_name} = {expr}"
+    dax_suggestion = expr
 
     return VisualAction(
         operation="CREATE",
@@ -453,7 +455,8 @@ def _build_deterministic_percent_of_total_action(
         },
         explanation=(
             "Para mostrar una **participación (% del total)** en una tarjeta, Power BI requiere una **medida** en el modelo. "
-            "Dejé la tarjeta lista y te comparto la medida sugerida para crearla una sola vez."
+            "Dejé la tarjeta lista y te comparto la medida sugerida para crearla una sola vez. "
+            "Luego, formatea la medida como **Porcentaje** (Modelado → Formato → Porcentaje)."
         ),
         requirements=KpiRequirements(
             needs_measure=True,
@@ -463,6 +466,7 @@ def _build_deterministic_percent_of_total_action(
             table=cat_table,
             column=cat_col,
             dax_suggestion=dax_suggestion,
+            format_hint="percentage",
         ),
     )
 
@@ -508,7 +512,7 @@ def _build_deterministic_rank_action(
     )
 
     suggested_measure_name = f"Ranking {cat_col}"
-    dax_suggestion = f"{suggested_measure_name} = {expr}"
+    dax_suggestion = expr
 
     return VisualAction(
         operation="CREATE",

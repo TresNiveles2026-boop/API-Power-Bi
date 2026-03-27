@@ -224,6 +224,10 @@ class KpiRequirements(BaseModel):
     table: str | None = Field(default=None, description="Tabla destino (si aplica).")
     column: str | None = Field(default=None, description="Columna destino (si aplica).")
     dax_suggestion: str | None = Field(default=None, description="DAX sugerido ya renderizado (si aplica).")
+    format_hint: str | None = Field(
+        default=None,
+        description="Sugerencia de formato para la medida (ej. 'percentage', 'currency', 'decimal').",
+    )
 
 
 class VisualAction(BaseModel):
