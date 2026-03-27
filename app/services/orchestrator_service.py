@@ -89,7 +89,53 @@ def _extract_primary_values_binding(action: VisualAction) -> DataRoleBinding | N
     return None
 
 
-def _attach_kpi_requirements(actions: list[VisualAction]) -> None:
+def _extract_primary_category_binding(action: VisualAction) -> DataRoleBinding | None:
+    """Extrae el binding principal de Category/Legend (si existe) del contrato moderno."""
+    roles = action.dataRoles or {}
+    for key in ("Category", "Legend", "Axis", "X", "Rows"):
+        val = roles.get(key)
+        if isinstance(val, DataRoleBinding):
+            return val
+        if isinstance(val, dict):
+            try:
+                return DataRoleBinding(**val)
+            except Exception:
+                continue
+        if isinstance(val, list) and val:
+            first = val[0]
+            if isinstance(first, DataRoleBinding):
+                return first
+            if isinstance(first, dict):
+                try:
+                    return DataRoleBinding(**first)
+                except Exception:
+                    continue
+    return None
+
+
+def _render_agg_expr(agg: str, table: str, column: str) -> str:
+    """
+    Renderiza una agregación DAX autocontenida.
+    NOTE: Usamos COUNTA como fallback seguro para COUNT sobre texto.
+    """
+    a = (agg or "").strip().lower()
+    tbl = _dax_escape_single_quotes(table)
+    col = column
+    if a in {"sum"}:
+        return f"SUM('{tbl}'[{col}])"
+    if a in {"average", "avg"}:
+        return f"AVERAGE('{tbl}'[{col}])"
+    if a in {"min"}:
+        return f"MIN('{tbl}'[{col}])"
+    if a in {"max"}:
+        return f"MAX('{tbl}'[{col}])"
+    if a in {"distinctcount"}:
+        return f"DISTINCTCOUNT('{tbl}'[{col}])"
+    # Count/unknown → COUNTA (robusto ante texto/número)
+    return f"COUNTA('{tbl}'[{col}])"
+
+
+def _attach_kpi_requirements(actions: list[VisualAction], user_message: str) -> None:
     """
     Adjunta requirements deterministas para KPIs que tienden a fallar en SDK/tenants.
 
@@ -98,12 +144,29 @@ def _attach_kpi_requirements(actions: list[VisualAction]) -> None:
     """
     templates = {t.id: t for t in get_measure_templates()}
     distinct_tpl = templates.get("distinct_count")
+    pct_tpl = templates.get("percent_of_total_agg")
+    rank_tpl = templates.get("rank_desc_agg")
+    msg = (user_message or "").lower()
+    wants_percent = (
+        ("%" in msg)
+        or ("porcentaje" in msg)
+        or ("participación" in msg)
+        or ("participacion" in msg)
+        or ("del total" in msg)
+        or ("% del" in msg)
+    )
+    wants_rank = (
+        ("ranking" in msg)
+        or ("rank" in msg)
+        or ("top " in msg)
+        or ("top-" in msg)
+        or ("mejores" in msg)
+        or ("peores" in msg)
+    )
 
     for act in actions:
         try:
             if str(act.operation).upper() != "CREATE":
-                continue
-            if (act.visualType or "").strip() != "card":
                 continue
             if act.requirements and act.requirements.needs_measure:
                 continue
@@ -113,34 +176,83 @@ def _attach_kpi_requirements(actions: list[VisualAction]) -> None:
             dax = (act.dax or "").strip().upper()
 
             is_distinct = (agg == "distinctcount") or ("DISTINCTCOUNT(" in dax)
-            if not is_distinct:
+            if is_distinct:
+                table = (binding.table or "").strip() if binding else ""
+                column = (binding.column or "").strip() if binding else ""
+                if not (table and column and distinct_tpl):
+                    continue
+
+                plural = _pluralize_es(column)
+                suggested_measure_name = f"Total de {plural} Únicos"
+
+                expr = distinct_tpl.dax_template.format(
+                    table=_dax_escape_single_quotes(table),
+                    column=column,
+                )
+                dax_suggestion = f"{suggested_measure_name} = {expr}"
+
+                act.requirements = KpiRequirements(
+                    needs_measure=True,
+                    operation="distinct_count",
+                    measure_template_id="distinct_count",
+                    suggested_measure_name=suggested_measure_name,
+                    table=table,
+                    column=column,
+                    dax_suggestion=dax_suggestion,
+                )
                 continue
 
-            table = (binding.table or "").strip() if binding else ""
-            column = (binding.column or "").strip() if binding else ""
-            if not (table and column and distinct_tpl):
-                # Sin table/column no podemos renderizar plantilla de forma determinista.
+            # percent_of_total / rank: requieren Category + Values
+            cat = _extract_primary_category_binding(act)
+            if not (binding and cat and cat.table and cat.column and binding.table and binding.column):
                 continue
 
-            plural = _pluralize_es(column)
-            suggested_measure_name = f"Total de {plural} Únicos"
+            # Preferimos señal fuerte en DAX si existe
+            is_percent = ("DIVIDE(" in dax and "ALL(" in dax) or wants_percent
+            is_rank = ("RANKX(" in dax) or wants_rank
+            if not (is_percent or is_rank):
+                continue
 
-            # Render determinista de plantilla
-            expr = distinct_tpl.dax_template.format(
-                table=_dax_escape_single_quotes(table),
-                column=column,
-            )
-            dax_suggestion = f"{suggested_measure_name} = {expr}"
+            base_expr = _render_agg_expr(binding.aggregation or "", binding.table, binding.column)
+            cat_table = (cat.table or "").strip()
+            cat_col = (cat.column or "").strip()
+            if not (cat_table and cat_col):
+                continue
 
-            act.requirements = KpiRequirements(
-                needs_measure=True,
-                operation="distinct_count",
-                measure_template_id="distinct_count",
-                suggested_measure_name=suggested_measure_name,
-                table=table,
-                column=column,
-                dax_suggestion=dax_suggestion,
-            )
+            if is_percent and pct_tpl:
+                suggested_measure_name = f"% {binding.column} del total"
+                expr = pct_tpl.dax_template.format(
+                    base_expr=base_expr,
+                    table=_dax_escape_single_quotes(cat_table),
+                    category_column=cat_col,
+                )
+                act.requirements = KpiRequirements(
+                    needs_measure=True,
+                    operation="percent_of_total",
+                    measure_template_id="percent_of_total_agg",
+                    suggested_measure_name=suggested_measure_name,
+                    table=cat_table,
+                    column=cat_col,
+                    dax_suggestion=f"{suggested_measure_name} = {expr}",
+                )
+                continue
+
+            if is_rank and rank_tpl:
+                suggested_measure_name = f"Ranking {cat_col}"
+                expr = rank_tpl.dax_template.format(
+                    table=_dax_escape_single_quotes(cat_table),
+                    category_column=cat_col,
+                    base_expr=base_expr,
+                )
+                act.requirements = KpiRequirements(
+                    needs_measure=True,
+                    operation="rank",
+                    measure_template_id="rank_desc_agg",
+                    suggested_measure_name=suggested_measure_name,
+                    table=cat_table,
+                    column=cat_col,
+                    dax_suggestion=f"{suggested_measure_name} = {expr}",
+                )
         except Exception:
             # Nunca rompemos la respuesta por enrichment de requirements.
             continue
@@ -349,7 +461,7 @@ async def process_chat_message(
         ]
 
     # 7.1 Enrichment determinista para KPIs (requirements)
-    _attach_kpi_requirements(actions)
+    _attach_kpi_requirements(actions, message)
 
     action = actions[0]
 

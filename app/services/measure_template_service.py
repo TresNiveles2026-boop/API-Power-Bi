@@ -36,6 +36,18 @@ def get_measure_templates() -> list[MeasureTemplate]:
             required_vars=["table", "column"],
         ),
         MeasureTemplate(
+            id="percent_of_total_agg",
+            display_name="% del total (auto-contenida)",
+            description="Participación de una categoría sobre el total, usando una agregación autocontenida.",
+            dax_template=(
+                "DIVIDE(\n"
+                "    {base_expr},\n"
+                "    CALCULATE({base_expr}, ALL('{table}'[{category_column}]))\n"
+                ")"
+            ),
+            required_vars=["base_expr", "table", "category_column"],
+        ),
+        MeasureTemplate(
             id="percent_of_total",
             display_name="% del total",
             description="Participación de una categoría sobre el total.",
@@ -107,6 +119,13 @@ def get_measure_templates() -> list[MeasureTemplate]:
             required_vars=["mom_delta_measure", "base_measure", "date_table", "date_col"],
         ),
         MeasureTemplate(
+            id="rank_desc_agg",
+            display_name="Ranking (DESC, auto-contenida)",
+            description="Ranking de una categoría según una agregación autocontenida.",
+            dax_template="RANKX(ALL('{table}'[{category_column}]), {base_expr}, , DESC)",
+            required_vars=["table", "category_column", "base_expr"],
+        ),
+        MeasureTemplate(
             id="rank_desc",
             display_name="Ranking (DESC)",
             description="Ranking de una categoría según una medida base.",
@@ -114,4 +133,3 @@ def get_measure_templates() -> list[MeasureTemplate]:
             required_vars=["table", "category_column", "base_measure"],
         ),
     ]
-
