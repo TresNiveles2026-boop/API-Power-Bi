@@ -258,6 +258,128 @@ def _attach_kpi_requirements(actions: list[VisualAction], user_message: str) -> 
             continue
 
 
+def _normalize_name(value: str) -> str:
+    return (value or "").strip().lower()
+
+
+def _find_column_in_schema(semantic_schema: dict[str, Any], desired: str) -> tuple[str, str] | None:
+    """
+    Busca una columna por nombre (case-insensitive) en semantic_schema.
+    Retorna (table, column) o None.
+    """
+    want = _normalize_name(desired)
+    if not want:
+        return None
+
+    tables = semantic_schema.get("tables") if isinstance(semantic_schema, dict) else None
+    if not isinstance(tables, dict):
+        return None
+
+    for table_name, cols in tables.items():
+        if not isinstance(cols, list):
+            continue
+        for c in cols:
+            if not isinstance(c, dict):
+                continue
+            col_name = _normalize_name(str(c.get("column_name", "")))
+            if col_name and col_name == want:
+                return (str(table_name), str(c.get("column_name")))
+    return None
+
+
+def _salvage_semantic_field_not_found(
+    actions: list[VisualAction],
+    user_message: str,
+    semantic_schema: dict[str, Any],
+) -> bool:
+    """
+    Parachute determinista cuando el LLM inventa campos y el Validator devuelve ERROR.
+
+    Estrategia:
+    - Si el usuario pide "% del total/participación" y existen Category+Value en el schema,
+      devolvemos un donutChart (participación) en vez de ERROR.
+    - Si el usuario pide ranking/top y existen Category+Value, devolvemos un barChart ordenable.
+    """
+    if not actions:
+        return False
+
+    a0 = actions[0]
+    if str(a0.operation).upper() != "ERROR":
+        return False
+
+    err_hint = (a0.error_code or "") + " " + (a0.explanation or "")
+    if "SEMANTIC_FIELD_NOT_FOUND" not in err_hint and "SEMANTIC_FIELD_NOT_FOUND" not in err_hint:
+        # (duplicado intencional: el hint puede venir en explanation o code)
+        if "SEMANTIC_FIELD_NOT_FOUND" not in (a0.explanation or ""):
+            return False
+
+    msg = (user_message or "").lower()
+    wants_percent = (
+        ("%" in msg)
+        or ("porcentaje" in msg)
+        or ("participación" in msg)
+        or ("participacion" in msg)
+        or ("del total" in msg)
+    )
+    wants_rank = (
+        ("ranking" in msg)
+        or ("rank" in msg)
+        or ("top " in msg)
+        or ("top-" in msg)
+        or ("mejores" in msg)
+        or ("peores" in msg)
+    )
+
+    # Extraer nombres sugeridos del propio mensaje (simple, determinista).
+    # Caso más común: "... Stock disponible ... Tipo almacén ..."
+    value_col = "Stock disponible" if "stock" in msg else ""
+    cat_col = "Tipo almacén" if ("tipo almac" in msg or "almac" in msg) else ""
+
+    found_value = _find_column_in_schema(semantic_schema, value_col) if value_col else None
+    found_cat = _find_column_in_schema(semantic_schema, cat_col) if cat_col else None
+    if not (found_value and found_cat):
+        return False
+
+    value_table, value_column = found_value
+    cat_table, cat_column = found_cat
+    # Preferimos tabla de categoría para agrupar; value table debería ser la misma en modelos simples.
+    table = cat_table or value_table
+
+    if wants_percent:
+        actions[0] = VisualAction(
+            operation="CREATE",
+            visualType="donutChart",
+            title=f"% de {value_column} por {cat_column}",
+            dataRoles={
+                "Category": {"table": table, "column": cat_column},
+                "Y": {"table": table, "column": value_column, "aggregation": "Sum"},
+            },
+            explanation=(
+                "Para ver participación (% del total) por categoría, un gráfico de dona/pie "
+                "es la opción más directa en Power BI. Ya lo dejé listo con tus campos."
+            ),
+        )
+        return True
+
+    if wants_rank:
+        actions[0] = VisualAction(
+            operation="CREATE",
+            visualType="barChart",
+            title=f"Ranking de {cat_column} por {value_column}",
+            dataRoles={
+                "Category": {"table": table, "column": cat_column},
+                "Y": {"table": table, "column": value_column, "aggregation": "Sum"},
+            },
+            explanation=(
+                "Para ranking, un gráfico de barras ordenado por la métrica es lo más claro. "
+                "Creé el visual con tus campos; solo ordénalo de mayor a menor si tu tenant lo requiere."
+            ),
+        )
+        return True
+
+    return False
+
+
 async def process_chat_message(
     message: str,
     report_id: str,
@@ -462,6 +584,9 @@ async def process_chat_message(
 
     # 7.1 Enrichment determinista para KPIs (requirements)
     _attach_kpi_requirements(actions, message)
+
+    # 7.2 Parachute determinista para errores de schema (evita ERROR por campos inventados)
+    _salvage_semantic_field_not_found(actions, message, semantic_schema)
 
     action = actions[0]
 
