@@ -157,6 +157,9 @@ IMPORTANTE:
 - Si el usuario pide cambiar categoría/métrica/ejes en un visual existente, usa operation="UPDATE" con dataRoles explícitos y targetVisualName exacto.
 - Si la agregación es simple (Sum/Average/Count/Min/Max/DistinctCount), usa "aggregation" en dataRoles del rol de métrica y deja "dax" vacío.
 - REGLA CRÍTICA (AGREGACIONES): Si el usuario pide "promedio", "suma", "conteo", "máximo", "mínimo" o "distinct count", TIENES PROHIBIDO inventar columnas calculadas como "Tabla[Promedio Stock]" o "Tabla[Suma de Ventas]". Debes usar ÚNICAMENTE la columna base EXACTA del diccionario en dataRoles y expresar la agregación en "aggregation" dentro del binding.
+- REGLA CRÍTICA (% DEL TOTAL / RANKING): Si el usuario pide "porcentaje", "% del total", "participación", "ranking", "rank" o "top", TIENES PROHIBIDO inventar campos como "Tabla[Participación Stock]" o "Tabla[Ranking]". Debes:
+  1) Usar SOLO columnas reales del diccionario para el contexto (ej. Category=Tabla[Tipo almacén], métrica=Tabla[Stock disponible]).
+  2) Crear una medida explícita en "dax" + "dax_name" (ej. DIVIDE(...ALL(...)) o RANKX(...)) si se requiere un KPI en tarjeta.
 - EJEMPLO (MATRIX promedio sin inventar columnas): para "promedio de Stock disponible por Periodo_Mes" usa Rows/Category = Tabla[Periodo_Mes] y Values = Tabla[Stock disponible] con aggregation="Average". "dax" debe ir vacío.
 - PARA COMPARACIONES DE PERIODOS (mes anterior, año anterior): NO generes DAX complejo. Usa una agregación simple (SUM/AVG) y agrega un filtro sobre `Periodo_Mes` con el valor MM-YYYY del periodo deseado. Deja "dax" vacío.
 - TIENES PROHIBIDO usar PREVIOUSMONTH, DATEADD, SAMEPERIODLASTYEAR y funciones que requieran una tabla Calendario.

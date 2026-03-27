@@ -259,7 +259,15 @@ def _attach_kpi_requirements(actions: list[VisualAction], user_message: str) -> 
 
 
 def _normalize_name(value: str) -> str:
-    return (value or "").strip().lower()
+    # Normalize for robust matching across accents/case (e.g., "almacén" vs "almacen").
+    import unicodedata
+
+    v = (value or "").strip().lower()
+    if not v:
+        return v
+    return "".join(
+        ch for ch in unicodedata.normalize("NFKD", v) if not unicodedata.combining(ch)
+    )
 
 
 def _find_column_in_schema(semantic_schema: dict[str, Any], desired: str) -> tuple[str, str] | None:
@@ -285,6 +293,245 @@ def _find_column_in_schema(semantic_schema: dict[str, Any], desired: str) -> tup
             if col_name and col_name == want:
                 return (str(table_name), str(c.get("column_name")))
     return None
+
+
+def _extract_columns_from_schema(semantic_schema: dict[str, Any]) -> list[dict[str, str]]:
+    """Flatten semantic_schema into [{table, column, data_type}...] deterministically."""
+    tables = semantic_schema.get("tables") if isinstance(semantic_schema, dict) else None
+    if not isinstance(tables, dict):
+        return []
+    out: list[dict[str, str]] = []
+    for table_name, cols in tables.items():
+        if not isinstance(cols, list):
+            continue
+        for c in cols:
+            if not isinstance(c, dict):
+                continue
+            col = str(c.get("column_name", "") or "").strip()
+            if not col:
+                continue
+            out.append(
+                {
+                    "table": str(table_name),
+                    "column": col,
+                    "data_type": str(c.get("data_type", "") or ""),
+                }
+            )
+    return out
+
+
+def _is_numeric_dtype(data_type: str) -> bool:
+    dt = (data_type or "").strip().lower()
+    if not dt:
+        return False
+    return any(
+        k in dt
+        for k in (
+            "int",
+            "decimal",
+            "double",
+            "float",
+            "number",
+            "numeric",
+            "currency",
+        )
+    )
+
+
+def _choose_percent_of_total_bindings(
+    user_message: str, semantic_schema: dict[str, Any]
+) -> tuple[tuple[str, str], tuple[str, str]] | None:
+    """
+    Deterministically choose (value_table,value_col) and (cat_table,cat_col)
+    for '% del total / participación' prompts, based only on columns present in schema.
+    """
+    msg = _normalize_name(user_message)
+    cols = _extract_columns_from_schema(semantic_schema)
+    if not cols:
+        return None
+
+    # 1) Category: prefer explicit "por <col>" mentions (strongest signal).
+    best_cat: dict[str, str] | None = None
+    for c in cols:
+        col_norm = _normalize_name(c["column"])
+        if not col_norm:
+            continue
+        if f"por {col_norm}" in msg or f"segun {col_norm}" in msg or f"según {col_norm}" in msg:
+            if (best_cat is None) or (len(col_norm) > len(_normalize_name(best_cat["column"]))):
+                best_cat = c
+
+    # Fallback: any mentioned non-numeric column.
+    if best_cat is None:
+        for c in cols:
+            col_norm = _normalize_name(c["column"])
+            if col_norm and col_norm in msg and not _is_numeric_dtype(c.get("data_type", "")):
+                best_cat = c
+                break
+
+    if best_cat is None:
+        return None
+
+    # 2) Value: any mentioned numeric column not equal to category.
+    best_val: dict[str, str] | None = None
+    for c in cols:
+        if c["table"] == best_cat["table"] and _normalize_name(c["column"]) == _normalize_name(best_cat["column"]):
+            continue
+        col_norm = _normalize_name(c["column"])
+        if col_norm and col_norm in msg and _is_numeric_dtype(c.get("data_type", "")):
+            best_val = c
+            break
+
+    # Fallback: any mentioned column not equal to category.
+    if best_val is None:
+        for c in cols:
+            if c["table"] == best_cat["table"] and _normalize_name(c["column"]) == _normalize_name(best_cat["column"]):
+                continue
+            col_norm = _normalize_name(c["column"])
+            if col_norm and col_norm in msg:
+                best_val = c
+                break
+
+    if best_val is None:
+        return None
+
+    return (best_val["table"], best_val["column"]), (best_cat["table"], best_cat["column"])
+
+
+def _build_deterministic_percent_of_total_action(
+    user_message: str, semantic_schema: dict[str, Any]
+) -> VisualAction | None:
+    """
+    Camino B (determinista): cuando el usuario pide '% del total/participación',
+    devolvemos SIEMPRE requirements + plantilla, sin permitir columnas inventadas.
+    """
+    msg = (user_message or "").lower()
+    wants_percent = (
+        ("%" in msg)
+        or ("porcentaje" in msg)
+        or ("participación" in msg)
+        or ("participacion" in msg)
+        or ("del total" in msg)
+        or ("% del" in msg)
+    )
+    if not wants_percent:
+        return None
+    # Solo forzamos medida en KPI/card cuando el usuario pide una tarjeta.
+    msg_l = msg
+    if ("tarjeta" not in msg_l) and ("kpi" not in msg_l) and ("card" not in msg_l):
+        return None
+
+    bindings = _choose_percent_of_total_bindings(user_message, semantic_schema)
+    if not bindings:
+        return None
+
+    (value_table, value_col), (cat_table, cat_col) = bindings
+
+    templates = {t.id: t for t in get_measure_templates()}
+    pct_tpl = templates.get("percent_of_total_agg")
+    if not pct_tpl:
+        return None
+
+    # Participation is typically SUM over the metric.
+    base_expr = _render_agg_expr("sum", value_table, value_col)
+    expr = pct_tpl.dax_template.format(
+        base_expr=base_expr,
+        table=_dax_escape_single_quotes(cat_table),
+        category_column=cat_col,
+    )
+
+    suggested_measure_name = f"% {value_col} del total"
+    dax_suggestion = f"{suggested_measure_name} = {expr}"
+
+    return VisualAction(
+        operation="CREATE",
+        visualType="card",
+        title=suggested_measure_name,
+        layout_intent="kpi_top",
+        # NOTE: no binding inline; el frontend intercepta por requirements.needs_measure.
+        dataRoles={
+            "Values": {"table": value_table, "column": value_col, "aggregation": "Sum"},
+        },
+        explanation=(
+            "Para mostrar una **participación (% del total)** en una tarjeta, Power BI requiere una **medida** en el modelo. "
+            "Dejé la tarjeta lista y te comparto la medida sugerida para crearla una sola vez."
+        ),
+        requirements=KpiRequirements(
+            needs_measure=True,
+            operation="percent_of_total",
+            measure_template_id="percent_of_total_agg",
+            suggested_measure_name=suggested_measure_name,
+            table=cat_table,
+            column=cat_col,
+            dax_suggestion=dax_suggestion,
+        ),
+    )
+
+
+def _build_deterministic_rank_action(
+    user_message: str, semantic_schema: dict[str, Any]
+) -> VisualAction | None:
+    """
+    Camino B (determinista): cuando el usuario pide ranking/top/rank,
+    devolvemos requirements + plantilla (RANKX) sin permitir campos inventados.
+    """
+    msg = (user_message or "").lower()
+    wants_rank = (
+        ("ranking" in msg)
+        or ("rank" in msg)
+        or ("top " in msg)
+        or ("top-" in msg)
+        or ("mejores" in msg)
+        or ("peores" in msg)
+    )
+    if not wants_rank:
+        return None
+    # Solo forzamos medida en KPI/card cuando el usuario pide una tarjeta.
+    if ("tarjeta" not in msg) and ("kpi" not in msg) and ("card" not in msg):
+        return None
+
+    bindings = _choose_percent_of_total_bindings(user_message, semantic_schema)
+    if not bindings:
+        return None
+
+    (value_table, value_col), (cat_table, cat_col) = bindings
+
+    templates = {t.id: t for t in get_measure_templates()}
+    rank_tpl = templates.get("rank_desc_agg")
+    if not rank_tpl:
+        return None
+
+    base_expr = _render_agg_expr("sum", value_table, value_col)
+    expr = rank_tpl.dax_template.format(
+        table=_dax_escape_single_quotes(cat_table),
+        category_column=cat_col,
+        base_expr=base_expr,
+    )
+
+    suggested_measure_name = f"Ranking {cat_col}"
+    dax_suggestion = f"{suggested_measure_name} = {expr}"
+
+    return VisualAction(
+        operation="CREATE",
+        visualType="card",
+        title=suggested_measure_name,
+        layout_intent="kpi_top",
+        dataRoles={
+            "Values": {"table": value_table, "column": value_col, "aggregation": "Sum"},
+        },
+        explanation=(
+            "Para mostrar **ranking** en una tarjeta, Power BI requiere una **medida** en el modelo. "
+            "Dejé la tarjeta lista y te comparto la medida sugerida."
+        ),
+        requirements=KpiRequirements(
+            needs_measure=True,
+            operation="rank",
+            measure_template_id="rank_desc_agg",
+            suggested_measure_name=suggested_measure_name,
+            table=cat_table,
+            column=cat_col,
+            dax_suggestion=dax_suggestion,
+        ),
+    )
 
 
 def _salvage_semantic_field_not_found(
@@ -461,6 +708,40 @@ async def process_chat_message(
             for table_name, columns in dictionary.tables.items()
         }
     }
+
+    # 3.1 Camino B (determinista): KPIs que requieren medida (ej. % del total/participación)
+    # WHY: Prohibimos que el LLM invente columnas ("Participación Stock") cuando el schema no las contiene.
+    deterministic_action = (
+        _build_deterministic_percent_of_total_action(message, semantic_schema)
+        or _build_deterministic_rank_action(message, semantic_schema)
+    )
+    if deterministic_action is not None:
+        latency_ms = int((time.time() - start_time) * 1000)
+        await _log_audit_event(
+            tenant_id=tenant_id,
+            user_identifier="api_user",
+            action="CREATE_VISUAL",
+            input_data={"message": message, "report_id": report_id},
+            output_data={"actions": [deterministic_action.model_dump()]},
+            latency_ms=latency_ms,
+        )
+        await add_message(
+            conversation_id=conversation_id,  # type: ignore
+            role="assistant",
+            content=deterministic_action.explanation or "Acción ejecutada",
+            action=deterministic_action.model_dump(),
+            intent="CREATE_VISUAL",
+            confidence=1.0,
+        )
+        return ChatResponse(
+            status="success",
+            action=deterministic_action,
+            actions=[deterministic_action],
+            intent="CREATE_VISUAL",
+            confidence=1.0,
+            retries_used=0,
+            conversation_id=conversation_id,
+        )
 
     # 4. Preparar el estado inicial del grafo
     initial_state: dict[str, Any] = {
