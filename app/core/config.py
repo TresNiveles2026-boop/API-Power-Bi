@@ -57,10 +57,11 @@ class Settings(BaseSettings):
     cors_origins: str = ""  # Comma-separated: "http://localhost:3002,https://app.example.com"
 
     # ── Timeouts (UX / Cloud Run) ──────────────────────────────────
-    # WHY: El frontend (Vercel) suele tener timeouts agresivos; si el orquestador
-    # tarda demasiado, devolvemos una respuesta controlada en lugar de colgar la request.
-    # Default aligned with WEB-PROMBI client timeout (120s). Keep a small buffer.
-    chat_http_timeout_seconds: int = 110
+    # WHY: El orquestador ya tiene su propio timeout (ORCHESTRATOR_TIMEOUT_SECONDS).
+    # Este timeout extra a nivel HTTP es opcional y puede desactivarse en producción
+    # para evitar falsos positivos (picos de latencia, cold starts, etc.).
+    # 0 = deshabilitado.
+    chat_http_timeout_seconds: int = 0
 
     # ── Validators ──────────────────────────────────────────────────
 

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import asyncio
-import contextlib
 import io
 import json
 import zipfile
@@ -485,47 +484,19 @@ async def chat(
     rate_limiter.check(user.tenant_id, "chat")
 
     try:
-        # WHY: El orquestador puede tardar (Router/Generator/Validator + retries).
-        # Para no romper UX en Vercel (timeout de cliente), imponemos un presupuesto
-        # duro a nivel HTTP y devolvemos un ERROR controlado.
-        from app.core.config import settings
-
-        task = asyncio.create_task(
-            process_chat_message(
-                message=payload.message,
-                report_id=payload.report_id,
-                tenant_id=payload.tenant_id,
-                conversation_id=payload.conversation_id,
-                visual_context=payload.visual_context,
-            )
+        # WHY: No imponemos un timeout HTTP "duro" aquí.
+        # El orquestador ya tiene timeout interno y el frontend maneja timeouts del cliente.
+        response = await process_chat_message(
+            message=payload.message,
+            report_id=payload.report_id,
+            tenant_id=payload.tenant_id,
+            conversation_id=payload.conversation_id,
+            visual_context=payload.visual_context,
         )
-        try:
-            response = await asyncio.wait_for(
-                task,
-                timeout=settings.chat_http_timeout_seconds,
-            )
-        except asyncio.TimeoutError:
-            task.cancel()
-            # NOTE: asyncio.CancelledError hereda de BaseException (py3.13),
-            # así que debemos suprimir BaseException para evitar 500 post-cancel.
-            with contextlib.suppress(BaseException):
-                await task
-            action = VisualAction(
-                operation="ERROR",
-                visualType=None,
-                title="",
-                explanation="La solicitud tardó demasiado. Intenta de nuevo.",
-                follow_up_questions=["¿Quieres que lo intente de nuevo?"],
-            )
-            return ChatResponse(
-                status="success",
-                action=action,
-                actions=[action],
-                intent="ERROR",
-                confidence=0.0,
-                retries_used=0,
-                conversation_id=payload.conversation_id,
-            )
+    except asyncio.CancelledError:
+        # Client disconnected / request aborted: no es un error del backend.
+        logger.info("🔌 /chat cancelado por el cliente.")
+        raise
     except Exception as exc:
         # Degradación controlada: nunca romper el chat por errores del pipeline de IA.
         from app.ai.gemini_client import GeminiExhaustedError, GeminiTimeoutError
