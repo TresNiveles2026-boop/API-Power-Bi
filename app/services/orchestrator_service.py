@@ -19,8 +19,9 @@ from typing import Any
 
 from app.ai.gemini_client import GeminiExhaustedError, GeminiTimeoutError
 from app.ai.graph import build_orchestrator_graph
-from app.ai.models import AIResponse, ChatResponse, VisualAction
+from app.ai.models import AIResponse, ChatResponse, DataRoleBinding, KpiRequirements, VisualAction
 from app.db.supabase_client import get_supabase_client
+from app.services.measure_template_service import get_measure_templates
 from app.services.chat_history_service import (
     add_message,
     create_conversation,
@@ -42,6 +43,107 @@ _graph = build_orchestrator_graph()
 # WHY: LIVE mode puede requerir múltiples rondas de corrección en
 # Router/Generator/Validator. 120s evita timeouts prematuros.
 ORCHESTRATOR_TIMEOUT_SECONDS = 240
+
+
+def _pluralize_es(word: str) -> str:
+    """
+    Pluralización ES simple (suficiente para etiquetas KPI).
+    NOTE: No pretende cubrir todos los casos del español.
+    """
+    w = (word or "").strip()
+    if not w:
+        return w
+    lower = w.lower()
+    if lower.endswith(("s", "x")):
+        return w
+    if lower.endswith(("a", "e", "i", "o", "u")):
+        return f"{w}s"
+    return f"{w}es"
+
+
+def _dax_escape_single_quotes(value: str) -> str:
+    """Escapa comillas simples para identifiers entre comillas en DAX."""
+    return (value or "").replace("'", "''")
+
+
+def _extract_primary_values_binding(action: VisualAction) -> DataRoleBinding | None:
+    """Extrae el binding principal de Values (si existe) del contrato moderno."""
+    roles = action.dataRoles or {}
+    values = roles.get("Values")
+    if isinstance(values, DataRoleBinding):
+        return values
+    if isinstance(values, dict):
+        try:
+            return DataRoleBinding(**values)
+        except Exception:
+            return None
+    if isinstance(values, list) and values:
+        first = values[0]
+        if isinstance(first, DataRoleBinding):
+            return first
+        if isinstance(first, dict):
+            try:
+                return DataRoleBinding(**first)
+            except Exception:
+                return None
+    return None
+
+
+def _attach_kpi_requirements(actions: list[VisualAction]) -> None:
+    """
+    Adjunta requirements deterministas para KPIs que tienden a fallar en SDK/tenants.
+
+    WHY: Evita que el frontend "adivine" y permite activar el asistente de medidas
+    usando un contrato estable (needs_measure + dax_suggestion).
+    """
+    templates = {t.id: t for t in get_measure_templates()}
+    distinct_tpl = templates.get("distinct_count")
+
+    for act in actions:
+        try:
+            if str(act.operation).upper() != "CREATE":
+                continue
+            if (act.visualType or "").strip() != "card":
+                continue
+            if act.requirements and act.requirements.needs_measure:
+                continue
+
+            binding = _extract_primary_values_binding(act)
+            agg = (binding.aggregation or "").strip().lower() if binding else ""
+            dax = (act.dax or "").strip().upper()
+
+            is_distinct = (agg == "distinctcount") or ("DISTINCTCOUNT(" in dax)
+            if not is_distinct:
+                continue
+
+            table = (binding.table or "").strip() if binding else ""
+            column = (binding.column or "").strip() if binding else ""
+            if not (table and column and distinct_tpl):
+                # Sin table/column no podemos renderizar plantilla de forma determinista.
+                continue
+
+            plural = _pluralize_es(column)
+            suggested_measure_name = f"Total de {plural} Únicos"
+
+            # Render determinista de plantilla
+            expr = distinct_tpl.dax_template.format(
+                table=_dax_escape_single_quotes(table),
+                column=column,
+            )
+            dax_suggestion = f"{suggested_measure_name} = {expr}"
+
+            act.requirements = KpiRequirements(
+                needs_measure=True,
+                operation="distinct_count",
+                measure_template_id="distinct_count",
+                suggested_measure_name=suggested_measure_name,
+                table=table,
+                column=column,
+                dax_suggestion=dax_suggestion,
+            )
+        except Exception:
+            # Nunca rompemos la respuesta por enrichment de requirements.
+            continue
 
 
 async def process_chat_message(
@@ -245,6 +347,9 @@ async def process_chat_message(
                 explanation="No se generaron acciones ejecutables.",
             )
         ]
+
+    # 7.1 Enrichment determinista para KPIs (requirements)
+    _attach_kpi_requirements(actions)
 
     action = actions[0]
 

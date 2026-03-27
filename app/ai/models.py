@@ -200,6 +200,32 @@ ErrorCode = Literal[
 ]
 
 
+KpiOperation = Literal[
+    "distinct_count",
+    "percent_of_total",
+    "running_total",
+    "rank",
+    "yoy",
+]
+
+
+class KpiRequirements(BaseModel):
+    """
+    Requisitos deterministas para ejecutar un KPI (especialmente en cards).
+
+    WHY: Algunas operaciones (DistinctCount en card, YoY, % del total, etc.) pueden
+    requerir una medida en el modelo por restricciones del SDK/tenant. En esos casos
+    el frontend debe activar el asistente de medidas y evitar intentos inútiles.
+    """
+    needs_measure: bool = Field(default=False, description="Si true, requiere una medida en el modelo.")
+    operation: KpiOperation | None = Field(default=None, description="Operación KPI canónica.")
+    measure_template_id: str | None = Field(default=None, description="ID de plantilla determinista (registry).")
+    suggested_measure_name: str | None = Field(default=None, description="Nombre sugerido para la medida.")
+    table: str | None = Field(default=None, description="Tabla destino (si aplica).")
+    column: str | None = Field(default=None, description="Columna destino (si aplica).")
+    dax_suggestion: str | None = Field(default=None, description="DAX sugerido ya renderizado (si aplica).")
+
+
 class VisualAction(BaseModel):
     """
     Acción generada por el orquestador para el frontend.
@@ -252,6 +278,7 @@ class VisualAction(BaseModel):
     query_type: str | None = Field(default=None, description="Operación especial reservada para el backend (ej. TIME_SNAPSHOT_COMPARISON)")
     payload: dict[str, Any] | None = Field(default=None, description="Payload de parámetros para macros del backend")
     top_n: TopNConfig | None = Field(default=None, description="Configuración de filtro TopN nativo (reemplaza DAX RANKX/TOPN)")
+    requirements: KpiRequirements | None = Field(default=None, description="Requisitos deterministas para ejecutar el KPI (si aplica).")
 
     @model_validator(mode="after")
     def validate_by_operation(self) -> "VisualAction":
