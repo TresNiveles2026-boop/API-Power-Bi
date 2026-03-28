@@ -358,7 +358,19 @@ def _choose_date_column(user_message: str, semantic_schema: dict[str, Any]) -> t
     if not cols:
         return None
 
-    date_cols = [c for c in cols if _is_date_dtype(c.get("data_type", ""))]
+    def _is_dateish_name(col_name: str) -> bool:
+        n = _normalize_name(col_name)
+        if not n:
+            return False
+        # Heurística determinista por nombre (necesaria porque algunos diccionarios
+        # registran fechas como String aunque en el modelo sean Date/DateTime).
+        return any(k in n for k in ("fecha", "periodo", "period", "mes", "month", "ano", "year", "date"))
+
+    date_cols = [
+        c
+        for c in cols
+        if _is_date_dtype(c.get("data_type", "")) or _is_dateish_name(c.get("column", ""))
+    ]
     if not date_cols:
         return None
 
@@ -626,8 +638,20 @@ def _build_deterministic_running_total_action(
 
     val = _choose_value_column(user_message, semantic_schema)
     dt = _choose_date_column(user_message, semantic_schema)
-    if not (val and dt):
+    if not val:
         return None
+    if not dt:
+        return VisualAction(
+            operation="ERROR",
+            error_code="TIME_INTELLIGENCE_REQUIRES_DATE_TABLE",
+            explanation=(
+                "Para calcular un **acumulado (running total)** necesito una columna de **fecha** en el modelo "
+                "(tipo Date/DateTime, o una columna 'Fecha/Periodo' equivalente). En este reporte no pude detectarla "
+                "en el diccionario semántico actual.\n\n"
+                "Sugerencia: sincroniza el esquema completo o asegúrate de que tu modelo incluya una columna de fecha "
+                "y vuelve a intentar."
+            ),
+        )
 
     value_table, value_col = val
     date_table, date_col = dt
@@ -696,8 +720,19 @@ def _build_deterministic_yoy_action(
 
     val = _choose_value_column(user_message, semantic_schema)
     dt = _choose_date_column(user_message, semantic_schema)
-    if not (val and dt):
+    if not val:
         return None
+    if not dt:
+        return VisualAction(
+            operation="ERROR",
+            error_code="TIME_INTELLIGENCE_REQUIRES_DATE_TABLE",
+            explanation=(
+                "Para calcular **YoY** necesito una columna de **fecha** en el modelo (tipo Date/DateTime) "
+                "y que esté disponible en el diccionario semántico. En este reporte no pude detectarla.\n\n"
+                "Sugerencia: verifica que exista una columna de fecha (por ejemplo 'Fecha de stock' o 'Periodo_Mes') "
+                "y sincroniza el esquema; luego vuelve a intentar."
+            ),
+        )
 
     value_table, value_col = val
     date_table, date_col = dt
