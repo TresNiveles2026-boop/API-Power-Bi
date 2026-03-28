@@ -347,6 +347,54 @@ def _is_date_dtype(data_type: str) -> bool:
     return any(k in dt for k in ("date", "datetime", "time"))
 
 
+def _is_dateish_name(col_name: str) -> bool:
+    n = _normalize_name(col_name)
+    if not n:
+        return False
+    # Heurística determinista por nombre (necesaria porque algunos diccionarios
+    # registran fechas como String aunque en el modelo sean Date/DateTime).
+    return any(
+        k in n
+        for k in (
+            "fecha",
+            "periodo",
+            "period",
+            "mes",
+            "month",
+            "ano",
+            "year",
+            "date",
+        )
+    )
+
+
+def _is_numericish_name(col_name: str) -> bool:
+    n = _normalize_name(col_name)
+    if not n:
+        return False
+    # Señales fuertes de métrica; evita depender 100% del data_type (a veces vacío).
+    return any(
+        k in n
+        for k in (
+            "stock",
+            "cantidad",
+            "monto",
+            "importe",
+            "ventas",
+            "venta",
+            "precio",
+            "costo",
+            "cost",
+            "amount",
+            "qty",
+            "quantity",
+            "units",
+            "unidades",
+            "total",
+        )
+    )
+
+
 def _choose_date_column(user_message: str, semantic_schema: dict[str, Any]) -> tuple[str, str] | None:
     """
     Deterministically pick a date column for time-intelligence templates.
@@ -357,14 +405,6 @@ def _choose_date_column(user_message: str, semantic_schema: dict[str, Any]) -> t
     cols = _extract_columns_from_schema(semantic_schema)
     if not cols:
         return None
-
-    def _is_dateish_name(col_name: str) -> bool:
-        n = _normalize_name(col_name)
-        if not n:
-            return False
-        # Heurística determinista por nombre (necesaria porque algunos diccionarios
-        # registran fechas como String aunque en el modelo sean Date/DateTime).
-        return any(k in n for k in ("fecha", "periodo", "period", "mes", "month", "ano", "year", "date"))
 
     date_cols = [
         c
@@ -400,12 +440,26 @@ def _choose_value_column(user_message: str, semantic_schema: dict[str, Any]) -> 
     if not cols:
         return None
 
-    numeric_cols = [c for c in cols if _is_numeric_dtype(c.get("data_type", ""))]
+    numeric_cols = [
+        c
+        for c in cols
+        if (
+            _is_numeric_dtype(c.get("data_type", ""))
+            or (not _is_date_dtype(c.get("data_type", "")) and _is_numericish_name(c.get("column", "")))
+        )
+        and (not _is_date_dtype(c.get("data_type", "")))
+        and (not _is_dateish_name(c.get("column", "")))
+    ]
     if not numeric_cols:
-        # Fallback: any mentioned column (better than None in small models).
+        # Fallback: any *non-date* mentioned column (better than None in small models).
         for c in cols:
             col_norm = _normalize_name(c["column"])
-            if col_norm and col_norm in msg:
+            if (
+                col_norm
+                and col_norm in msg
+                and (not _is_date_dtype(c.get("data_type", "")))
+                and (not _is_dateish_name(c.get("column", "")))
+            ):
                 return (c["table"], c["column"])
         return None
 
