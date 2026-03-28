@@ -340,6 +340,72 @@ def _is_numeric_dtype(data_type: str) -> bool:
     )
 
 
+def _is_date_dtype(data_type: str) -> bool:
+    dt = (data_type or "").strip().lower()
+    if not dt:
+        return False
+    return any(k in dt for k in ("date", "datetime", "time"))
+
+
+def _choose_date_column(user_message: str, semantic_schema: dict[str, Any]) -> tuple[str, str] | None:
+    """
+    Deterministically pick a date column for time-intelligence templates.
+    Prefer explicitly mentioned date columns; fallback to columns containing 'fecha';
+    else first date-like column.
+    """
+    msg = _normalize_name(user_message)
+    cols = _extract_columns_from_schema(semantic_schema)
+    if not cols:
+        return None
+
+    date_cols = [c for c in cols if _is_date_dtype(c.get("data_type", ""))]
+    if not date_cols:
+        return None
+
+    # 1) Explicit mention
+    for c in date_cols:
+        col_norm = _normalize_name(c["column"])
+        if col_norm and col_norm in msg:
+            return (c["table"], c["column"])
+
+    # 2) Prefer 'fecha' in name
+    for c in date_cols:
+        if "fecha" in _normalize_name(c["column"]):
+            return (c["table"], c["column"])
+
+    # 3) First date-like
+    c0 = date_cols[0]
+    return (c0["table"], c0["column"])
+
+
+def _choose_value_column(user_message: str, semantic_schema: dict[str, Any]) -> tuple[str, str] | None:
+    """
+    Deterministically pick a numeric-ish value column for KPI prompts.
+    Prefer numeric columns explicitly mentioned; fallback to first numeric-ish column.
+    """
+    msg = _normalize_name(user_message)
+    cols = _extract_columns_from_schema(semantic_schema)
+    if not cols:
+        return None
+
+    numeric_cols = [c for c in cols if _is_numeric_dtype(c.get("data_type", ""))]
+    if not numeric_cols:
+        # Fallback: any mentioned column (better than None in small models).
+        for c in cols:
+            col_norm = _normalize_name(c["column"])
+            if col_norm and col_norm in msg:
+                return (c["table"], c["column"])
+        return None
+
+    for c in numeric_cols:
+        col_norm = _normalize_name(c["column"])
+        if col_norm and col_norm in msg:
+            return (c["table"], c["column"])
+
+    c0 = numeric_cols[0]
+    return (c0["table"], c0["column"])
+
+
 def _choose_percent_of_total_bindings(
     user_message: str, semantic_schema: dict[str, Any]
 ) -> tuple[tuple[str, str], tuple[str, str]] | None:
@@ -538,6 +604,145 @@ def _build_deterministic_rank_action(
     )
 
 
+def _build_deterministic_running_total_action(
+    user_message: str, semantic_schema: dict[str, Any]
+) -> VisualAction | None:
+    """
+    Camino B (determinista): "acumulado/running total/YTD" en tarjeta.
+    Requiere medida; devolvemos requirements + plantilla auto-contenida.
+    """
+    msg = (user_message or "").lower()
+    wants_running = (
+        ("acumulad" in msg)
+        or ("running total" in msg)
+        or ("acumulado" in msg)
+        or ("ytd" in msg)
+        or ("a la fecha" in msg)
+    )
+    if not wants_running:
+        return None
+    if ("tarjeta" not in msg) and ("kpi" not in msg) and ("card" not in msg):
+        return None
+
+    val = _choose_value_column(user_message, semantic_schema)
+    dt = _choose_date_column(user_message, semantic_schema)
+    if not (val and dt):
+        return None
+
+    value_table, value_col = val
+    date_table, date_col = dt
+
+    templates = {t.id: t for t in get_measure_templates()}
+    rt_tpl = templates.get("running_total_agg")
+    if not rt_tpl:
+        return None
+
+    base_expr = _render_agg_expr("sum", value_table, value_col)
+    expr = rt_tpl.dax_template.format(
+        base_expr=base_expr,
+        date_table=_dax_escape_single_quotes(date_table),
+        date_col=date_col,
+    )
+
+    suggested_measure_name = f"{value_col} acumulado"
+    return VisualAction(
+        operation="CREATE",
+        visualType="card",
+        title=suggested_measure_name,
+        layout_intent="kpi_top",
+        dataRoles={
+            "Values": {"table": value_table, "column": value_col, "aggregation": "Sum"},
+        },
+        explanation=(
+            "Para mostrar un **acumulado (running total)** en una tarjeta, Power BI requiere una **medida** en el modelo. "
+            "Dejé la tarjeta lista y te comparto la medida sugerida para crearla una sola vez."
+        ),
+        requirements=KpiRequirements(
+            needs_measure=True,
+            operation="running_total",
+            measure_template_id="running_total_agg",
+            suggested_measure_name=suggested_measure_name,
+            table=date_table,
+            column=date_col,
+            dax_suggestion=expr,
+        ),
+    )
+
+
+def _build_deterministic_yoy_action(
+    user_message: str, semantic_schema: dict[str, Any]
+) -> VisualAction | None:
+    """
+    Camino B (determinista): YoY (delta o %) en tarjeta.
+    Requiere medida; devolvemos requirements + plantilla auto-contenida.
+    """
+    msg = (user_message or "").lower()
+    wants_yoy = (
+        ("yoy" in msg)
+        or ("interanual" in msg)
+        or ("año contra año" in msg)
+        or ("ano contra ano" in msg)
+        or ("vs año" in msg)
+        or ("vs ano" in msg)
+        or ("año anterior" in msg)
+        or ("ano anterior" in msg)
+        or ("año pasado" in msg)
+        or ("ano pasado" in msg)
+    )
+    if not wants_yoy:
+        return None
+    if ("tarjeta" not in msg) and ("kpi" not in msg) and ("card" not in msg):
+        return None
+
+    val = _choose_value_column(user_message, semantic_schema)
+    dt = _choose_date_column(user_message, semantic_schema)
+    if not (val and dt):
+        return None
+
+    value_table, value_col = val
+    date_table, date_col = dt
+
+    wants_percent = ("%" in msg) or ("porcentaje" in msg) or ("crecimiento" in msg) or ("variacion" in msg) or ("variación" in msg)
+
+    templates = {t.id: t for t in get_measure_templates()}
+    tpl_id = "yoy_percent_agg" if wants_percent else "yoy_delta_agg"
+    yoy_tpl = templates.get(tpl_id)
+    if not yoy_tpl:
+        return None
+
+    base_expr = _render_agg_expr("sum", value_table, value_col)
+    expr = yoy_tpl.dax_template.format(
+        base_expr=base_expr,
+        date_table=_dax_escape_single_quotes(date_table),
+        date_col=date_col,
+    )
+
+    suggested_measure_name = f"YoY {value_col} {'%' if wants_percent else ''}".strip()
+    return VisualAction(
+        operation="CREATE",
+        visualType="card",
+        title=suggested_measure_name,
+        layout_intent="kpi_top",
+        dataRoles={
+            "Values": {"table": value_table, "column": value_col, "aggregation": "Sum"},
+        },
+        explanation=(
+            "Para mostrar **YoY** en una tarjeta, Power BI requiere una **medida** en el modelo. "
+            "Dejé la tarjeta lista y te comparto la medida sugerida."
+        ),
+        requirements=KpiRequirements(
+            needs_measure=True,
+            operation="yoy",
+            measure_template_id=tpl_id,
+            suggested_measure_name=suggested_measure_name,
+            table=date_table,
+            column=date_col,
+            dax_suggestion=expr,
+            format_hint="percentage" if wants_percent else None,
+        ),
+    )
+
+
 def _salvage_semantic_field_not_found(
     actions: list[VisualAction],
     user_message: str,
@@ -718,6 +923,8 @@ async def process_chat_message(
     deterministic_action = (
         _build_deterministic_percent_of_total_action(message, semantic_schema)
         or _build_deterministic_rank_action(message, semantic_schema)
+        or _build_deterministic_running_total_action(message, semantic_schema)
+        or _build_deterministic_yoy_action(message, semantic_schema)
     )
     if deterministic_action is not None:
         latency_ms = int((time.time() - start_time) * 1000)

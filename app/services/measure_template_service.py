@@ -75,6 +75,21 @@ def get_measure_templates() -> list[MeasureTemplate]:
             required_vars=["base_measure", "date_table", "date_col"],
         ),
         MeasureTemplate(
+            id="running_total_agg",
+            display_name="Acumulado (Running Total, auto-contenida)",
+            description="Acumulado en el tiempo para una agregación autocontenida (no requiere medida base).",
+            dax_template=(
+                "CALCULATE(\n"
+                "    {base_expr},\n"
+                "    FILTER(\n"
+                "        ALL('{date_table}'[{date_col}]),\n"
+                "        '{date_table}'[{date_col}] <= MAX('{date_table}'[{date_col}])\n"
+                "    )\n"
+                ")"
+            ),
+            required_vars=["base_expr", "date_table", "date_col"],
+        ),
+        MeasureTemplate(
             id="yoy_delta",
             display_name="YoY (variación interanual)",
             description="Diferencia vs el mismo período del año anterior.",
@@ -83,6 +98,16 @@ def get_measure_templates() -> list[MeasureTemplate]:
                 "CALCULATE([{base_measure}], SAMEPERIODLASTYEAR('{date_table}'[{date_col}]))"
             ),
             required_vars=["base_measure", "date_table", "date_col"],
+        ),
+        MeasureTemplate(
+            id="yoy_delta_agg",
+            display_name="YoY (variación interanual, auto-contenida)",
+            description="Diferencia vs el mismo período del año anterior para una agregación autocontenida.",
+            dax_template=(
+                "{base_expr} -\n"
+                "CALCULATE({base_expr}, SAMEPERIODLASTYEAR('{date_table}'[{date_col}]))"
+            ),
+            required_vars=["base_expr", "date_table", "date_col"],
         ),
         MeasureTemplate(
             id="yoy_percent",
@@ -97,6 +122,17 @@ def get_measure_templates() -> list[MeasureTemplate]:
             required_vars=["yoy_delta_measure", "base_measure", "date_table", "date_col"],
         ),
         MeasureTemplate(
+            id="yoy_percent_agg",
+            display_name="YoY % (crecimiento interanual, auto-contenida)",
+            description="Porcentaje vs el mismo período del año anterior para una agregación autocontenida.",
+            dax_template=(
+                "VAR __curr = {base_expr}\n"
+                "VAR __prev = CALCULATE({base_expr}, SAMEPERIODLASTYEAR('{date_table}'[{date_col}]))\n"
+                "RETURN DIVIDE(__curr - __prev, __prev)"
+            ),
+            required_vars=["base_expr", "date_table", "date_col"],
+        ),
+        MeasureTemplate(
             id="mom_delta",
             display_name="MoM (variación mensual)",
             description="Diferencia vs el período anterior (mes).",
@@ -105,6 +141,16 @@ def get_measure_templates() -> list[MeasureTemplate]:
                 "CALCULATE([{base_measure}], DATEADD('{date_table}'[{date_col}], -1, MONTH))"
             ),
             required_vars=["base_measure", "date_table", "date_col"],
+        ),
+        MeasureTemplate(
+            id="mom_delta_agg",
+            display_name="MoM (variación mensual, auto-contenida)",
+            description="Diferencia vs el período anterior (mes) para una agregación autocontenida.",
+            dax_template=(
+                "{base_expr} -\n"
+                "CALCULATE({base_expr}, DATEADD('{date_table}'[{date_col}], -1, MONTH))"
+            ),
+            required_vars=["base_expr", "date_table", "date_col"],
         ),
         MeasureTemplate(
             id="mom_percent",
@@ -117,6 +163,17 @@ def get_measure_templates() -> list[MeasureTemplate]:
                 ")"
             ),
             required_vars=["mom_delta_measure", "base_measure", "date_table", "date_col"],
+        ),
+        MeasureTemplate(
+            id="mom_percent_agg",
+            display_name="MoM % (crecimiento mensual, auto-contenida)",
+            description="Porcentaje vs el período anterior (mes) para una agregación autocontenida.",
+            dax_template=(
+                "VAR __curr = {base_expr}\n"
+                "VAR __prev = CALCULATE({base_expr}, DATEADD('{date_table}'[{date_col}], -1, MONTH))\n"
+                "RETURN DIVIDE(__curr - __prev, __prev)"
+            ),
+            required_vars=["base_expr", "date_table", "date_col"],
         ),
         MeasureTemplate(
             id="rank_desc_agg",
