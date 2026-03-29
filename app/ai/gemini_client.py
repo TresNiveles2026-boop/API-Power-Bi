@@ -19,6 +19,7 @@ import json
 import logging
 import re
 import time
+from threading import Lock
 from typing import Any
 
 import google.generativeai as genai
@@ -48,11 +49,18 @@ class GeminiParseError(Exception):
     pass
 
 
+class GeminiConfigError(Exception):
+    """Gemini no está configurado (API key faltante u otra config inválida)."""
+
+
 # ── Configuration ─────────────────────────────────────────────
 
 GEMINI_TIMEOUT_SECONDS = 45
 GEMINI_MAX_RETRIES = 3
 GEMINI_BACKOFF_BASE = 1  # seconds: 1s → 2s → 4s
+
+_genai_configured = False
+_genai_config_lock = Lock()
 
 
 def _configure_genai() -> None:
@@ -64,15 +72,29 @@ def _configure_genai() -> None:
     se llama una vez y aplica a todas las llamadas subsecuentes.
     """
     if not settings.google_ai_api_key:
-        raise ValueError(
+        raise GeminiConfigError(
             "GOOGLE_AI_API_KEY no está configurada en .env. "
             "Obtén una en https://aistudio.google.com"
         )
     genai.configure(api_key=settings.google_ai_api_key)
 
 
-# Inicializar al importar el módulo
-_configure_genai()
+def ensure_genai_configured() -> None:
+    """
+    Configura Gemini de forma perezosa (lazy).
+
+    WHY: En Cloud Run el contenedor debe poder arrancar y exponer /health aun si
+    la API key no está configurada. La validación/errores se manejan al invocar
+    /chat, no al importar el módulo.
+    """
+    global _genai_configured
+    if _genai_configured:
+        return
+    with _genai_config_lock:
+        if _genai_configured:
+            return
+        _configure_genai()
+        _genai_configured = True
 
 
 def _extract_json_from_text(text: str) -> Any:
@@ -180,6 +202,8 @@ async def call_gemini(
     """
     timeout_limit = int(timeout_seconds or GEMINI_TIMEOUT_SECONDS)
     retries_limit = int(max_retries or GEMINI_MAX_RETRIES)
+
+    ensure_genai_configured()
 
     model = genai.GenerativeModel(
         model_name=settings.gemini_model,

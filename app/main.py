@@ -80,7 +80,12 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     con un mensaje útil, no un stack trace crudo.
     """
     # Importar aquí para evitar circular imports
-    from app.ai.gemini_client import GeminiExhaustedError, GeminiParseError, GeminiTimeoutError
+    from app.ai.gemini_client import (
+        GeminiConfigError,
+        GeminiExhaustedError,
+        GeminiParseError,
+        GeminiTimeoutError,
+    )
 
     # ── Gemini Parse Error → HTTP 400 (no es error del servidor) ──
     if isinstance(exc, GeminiParseError):
@@ -123,6 +128,20 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
                     "Intenta de nuevo en un momento."
                 ),
                 "error_type": "GEMINI_EXHAUSTED",
+            },
+        )
+
+    # ── Gemini Not Configured → HTTP 503 ─────────────────────────
+    if isinstance(exc, GeminiConfigError):
+        logger.error("🔑 Gemini no configurado: %s", exc)
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "detail": (
+                    "El servicio de IA no está configurado correctamente en el servidor. "
+                    "Contacta soporte o intenta más tarde."
+                ),
+                "error_type": "GEMINI_NOT_CONFIGURED",
             },
         )
 
