@@ -221,3 +221,45 @@ class MeasureTemplate(BaseModel):
 class MeasureTemplateListResponse(BaseModel):
     status: str = "success"
     templates: list[MeasureTemplate] = Field(default_factory=list)
+
+
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║                    RUNTIME STATE (PERSISTENCIA)                ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+
+class RuntimeStateResponse(BaseModel):
+    status: str = "success"
+    tenant_id: str
+    report_id: str
+    blocked_capabilities: dict[str, bool] = Field(default_factory=dict)
+    suggested_measures_shown: list[str] = Field(default_factory=list)
+    user_acknowledged: dict[str, bool] = Field(default_factory=dict)
+    persistence_enabled: bool = Field(default=True)
+
+
+class RuntimeStatePatchRequest(BaseModel):
+    tenant_id: str
+    report_id: str
+    blocked_capabilities: dict[str, bool] | None = None
+    suggested_measures_shown: list[str] | None = None
+    user_acknowledged: dict[str, bool] | None = None
+    replace: bool = Field(default=False, description="Si true, reemplaza los campos provistos; si false, hace merge.")
+
+
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║                           PLAYBOOKS                            ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+
+class PlaybookItem(BaseModel):
+    id: str
+    title: str
+    description: str
+    action: dict[str, Any] = Field(default_factory=dict, description="VisualAction serializada.")
+
+
+class PlaybookListResponse(BaseModel):
+    status: str = "success"
+    report_id: str
+    playbooks: list[PlaybookItem] = Field(default_factory=list)

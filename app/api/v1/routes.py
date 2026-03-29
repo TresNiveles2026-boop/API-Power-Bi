@@ -31,6 +31,9 @@ from app.models.schemas import (
     EmbedConfigRequest,
     ErrorResponse,
     MeasureTemplateListResponse,
+    PlaybookListResponse,
+    RuntimeStatePatchRequest,
+    RuntimeStateResponse,
     ReportCreate,
     ReportResponse,
     SemanticDictionaryResponse,
@@ -61,6 +64,8 @@ from app.services.semantic_service import (
     sync_schema,
 )
 from app.services.measure_template_service import get_measure_templates
+from app.services.runtime_state_service import get_or_create_runtime_state, patch_runtime_state
+from app.services.playbook_service import generate_playbooks
 from app.services.pbi_schema_sync_service import (
     AdminSchemaBlockedError,
     SchemaReadBlockedError,
@@ -84,6 +89,74 @@ router = APIRouter(prefix="/api/v1", tags=["Phase 1 — Semantic Layer"])
 )
 async def list_measure_templates(_: CurrentUser = Depends(get_current_user)) -> MeasureTemplateListResponse:
     return MeasureTemplateListResponse(templates=get_measure_templates())
+
+
+@router.get(
+    "/runtime-state",
+    response_model=RuntimeStateResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_runtime_state(
+    report_id: str,
+    tenant_id: str,
+    user: CurrentUser = Depends(get_current_user),
+) -> RuntimeStateResponse:
+    rate_limiter.check(user.tenant_id, "default")
+    require_tenant_match(user, tenant_id)
+    state = await get_or_create_runtime_state(tenant_id=tenant_id, report_id=report_id)
+    return RuntimeStateResponse(**state.to_dict())
+
+
+@router.patch(
+    "/runtime-state",
+    response_model=RuntimeStateResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def update_runtime_state(
+    payload: RuntimeStatePatchRequest,
+    user: CurrentUser = Depends(get_current_user),
+) -> RuntimeStateResponse:
+    rate_limiter.check(user.tenant_id, "default")
+    require_tenant_match(user, payload.tenant_id)
+    state = await patch_runtime_state(
+        tenant_id=payload.tenant_id,
+        report_id=payload.report_id,
+        blocked_capabilities=payload.blocked_capabilities,
+        suggested_measures_shown=payload.suggested_measures_shown,
+        user_acknowledged=payload.user_acknowledged,
+        replace=payload.replace,
+    )
+    return RuntimeStateResponse(**state.to_dict())
+
+
+@router.get(
+    "/playbooks",
+    response_model=PlaybookListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def list_playbooks(
+    report_id: str,
+    tenant_id: str,
+    user: CurrentUser = Depends(get_current_user),
+) -> PlaybookListResponse:
+    """
+    Retorna recomendaciones deterministas basadas en el schema operativo.
+    """
+    rate_limiter.check(user.tenant_id, "default")
+    require_tenant_match(user, tenant_id)
+    items = await generate_playbooks(report_id=report_id, tenant_id=tenant_id)
+    return PlaybookListResponse(
+        report_id=report_id,
+        playbooks=[
+            {
+                "id": p.id,
+                "title": p.title,
+                "description": p.description,
+                "action": p.action.model_dump(),
+            }
+            for p in items
+        ],
+    )
 
 
 @router.post(
