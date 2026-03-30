@@ -10,7 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from app.ai.models import VisualAction
+from app.ai.models import KpiRequirements, VisualAction
+from app.services.measure_template_service import get_measure_templates
 from app.services.semantic_service import get_semantic_dictionary
 
 
@@ -167,11 +168,11 @@ def _is_numeric_col(col: dict[str, str]) -> bool:
 
 
 def _pick_first(
-    columns: list[dict[str, str]],
+    columns: list[dict[str, Any]],
     *,
     prefer_name_contains: tuple[str, ...] = (),
     predicate=None,
-) -> dict[str, str] | None:
+) -> dict[str, Any] | None:
     if not columns:
         return None
     if prefer_name_contains:
@@ -202,6 +203,43 @@ def _flatten_dictionary(dictionary: Any) -> list[dict[str, Any]]:
                 }
             )
     return out
+
+
+def _render_template(template_id: str, vars: dict[str, str]) -> str:
+    """
+    Renderiza una plantilla del registry de medidas (determinista).
+    """
+    templates = {t.id: t for t in get_measure_templates()}
+    tpl = templates.get(template_id)
+    if tpl is None:
+        return ""
+    # El template usa llaves {var}. Validación liviana: si falta var, devuelve vacío.
+    for var in (tpl.required_vars or []):
+        if var not in vars or vars[var] is None:
+            return ""
+    return str(tpl.dax_template).format(**vars)
+
+
+def _make_requirements(
+    *,
+    operation: str,
+    measure_template_id: str,
+    suggested_measure_name: str,
+    table: str | None = None,
+    column: str | None = None,
+    dax_suggestion: str,
+    format_hint: str | None = None,
+) -> KpiRequirements:
+    return KpiRequirements(
+        needs_measure=True,
+        operation=operation,  # type: ignore[arg-type]  # Literal en el modelo
+        measure_template_id=measure_template_id,
+        suggested_measure_name=suggested_measure_name,
+        table=table,
+        column=column,
+        dax_suggestion=dax_suggestion,
+        format_hint=format_hint,
+    )
 
 
 async def generate_playbooks(report_id: str, tenant_id: str) -> list[Playbook]:
@@ -251,88 +289,243 @@ async def generate_playbooks(report_id: str, tenant_id: str) -> list[Playbook]:
 
     playbooks: list[Playbook] = []
 
+    # 1) Visuales "sin medida": solo si tenemos métrica numérica confiable.
     if metric_col and cat_col:
-        action = VisualAction(
-            operation="CREATE",
-            visualType="barChart",
-            title=f"{metric_col['column']} por {cat_col['column']}",
-            layout_intent="chart_full",
-            dataRoles={
-                "Category": {"table": cat_col["table"], "column": cat_col["column"]},
-                "Y": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
-            },
-            explanation="Comparación por categoría (barras).",
-        )
         playbooks.append(
             Playbook(
                 id="bar_by_category",
                 title="Barras por categoría",
                 description=f"Suma de {metric_col['column']} por {cat_col['column']}.",
-                action=action,
+                action=VisualAction(
+                    operation="CREATE",
+                    visualType="barChart",
+                    title=f"{metric_col['column']} por {cat_col['column']}",
+                    layout_intent="chart_full",
+                    dataRoles={
+                        "Category": {"table": cat_col["table"], "column": cat_col["column"]},
+                        "Y": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
+                    },
+                    explanation="Comparación por categoría (barras).",
+                ),
             )
         )
 
-    if metric_col and date_col:
-        action = VisualAction(
-            operation="CREATE",
-            visualType="lineChart",
-            title=f"Tendencia de {metric_col['column']}",
-            layout_intent="chart_full",
-            dataRoles={
-                "Category": {"table": date_col["table"], "column": date_col["column"]},
-                "Y": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
-            },
-            explanation="Tendencia en el tiempo (línea).",
-        )
+        # Top N (usa filtro nativo, no DAX)
         playbooks.append(
             Playbook(
-                id="trend_over_time",
-                title="Tendencia en el tiempo",
-                description=f"Evolución de {metric_col['column']} por {date_col['column']}.",
-                action=action,
+                id="top10_by_category",
+                title="Top 10 por categoría",
+                description=f"Top 10 {cat_col['column']} por {metric_col['column']}.",
+                action=VisualAction(
+                    operation="CREATE",
+                    visualType="barChart",
+                    title=f"Top 10 {cat_col['column']} por {metric_col['column']}",
+                    layout_intent="chart_full",
+                    dataRoles={
+                        "Category": {"table": cat_col["table"], "column": cat_col["column"]},
+                        "Y": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
+                    },
+                    top_n={
+                        "count": 10,
+                        "order_by_column": metric_col["column"],
+                        "order_by_table": metric_col["table"],
+                        "category_column": cat_col["column"],
+                        "category_table": cat_col["table"],
+                        "direction": "Top",
+                    },
+                    explanation="Top 10 por categoría (filtro nativo TopN).",
+                ),
             )
         )
 
-    if metric_col and cat_col:
-        action = VisualAction(
-            operation="CREATE",
-            visualType="donutChart",
-            title=f"Participación de {cat_col['column']}",
-            layout_intent="chart_half",
-            dataRoles={
-                "Category": {"table": cat_col["table"], "column": cat_col["column"]},
-                "Y": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
-            },
-            explanation="Participación (donut).",
-        )
         playbooks.append(
             Playbook(
                 id="share_donut",
                 title="Participación (donut)",
                 description=f"Participación de {metric_col['column']} por {cat_col['column']}.",
-                action=action,
+                action=VisualAction(
+                    operation="CREATE",
+                    visualType="donutChart",
+                    title=f"Participación de {cat_col['column']}",
+                    layout_intent="chart_half",
+                    dataRoles={
+                        "Category": {"table": cat_col["table"], "column": cat_col["column"]},
+                        "Y": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
+                    },
+                    explanation="Participación (donut).",
+                ),
             )
         )
 
-    # KPI básico (suma total)
-    if metric_col:
-        action = VisualAction(
-            operation="CREATE",
-            visualType="card",
-            title=f"Total {metric_col['column']}",
-            layout_intent="kpi_top",
-            dataRoles={
-                "Values": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
-            },
-            explanation="KPI total (tarjeta).",
+    if metric_col and date_col:
+        playbooks.append(
+            Playbook(
+                id="trend_over_time",
+                title="Tendencia en el tiempo",
+                description=f"Evolución de {metric_col['column']} por {date_col['column']}.",
+                action=VisualAction(
+                    operation="CREATE",
+                    visualType="lineChart",
+                    title=f"Tendencia de {metric_col['column']}",
+                    layout_intent="chart_full",
+                    dataRoles={
+                        "Category": {"table": date_col["table"], "column": date_col["column"]},
+                        "Y": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
+                    },
+                    explanation="Tendencia en el tiempo (línea).",
+                ),
+            )
         )
+
+    if metric_col:
         playbooks.append(
             Playbook(
                 id="kpi_total",
                 title="KPI total",
                 description=f"Suma total de {metric_col['column']}.",
-                action=action,
+                action=VisualAction(
+                    operation="CREATE",
+                    visualType="card",
+                    title=f"Total {metric_col['column']}",
+                    layout_intent="kpi_top",
+                    dataRoles={
+                        "Values": {"table": metric_col["table"], "column": metric_col["column"], "aggregation": "Sum"},
+                    },
+                    explanation="KPI total (tarjeta).",
+                ),
             )
         )
 
+    # 2) Visuales/KPIs que **requieren medida** (fallback determinista → Measure Assistant).
+    #    Si NO hay métrica clara, igual entregamos un KPI útil (DistinctCount) basado en una dimensión.
+    if cat_col:
+        measure_name = f"Total de {cat_col['column']} únicos"
+        dax_expr = _render_template(
+            "distinct_count",
+            {"table": cat_col["table"], "column": cat_col["column"]},
+        )
+        if dax_expr:
+            playbooks.append(
+                Playbook(
+                    id="kpi_distinct_category",
+                    title=f"{cat_col['column']} únicos (KPI)",
+                    description=f"DistinctCount de {cat_col['column']} (requiere medida).",
+                    action=VisualAction(
+                        operation="CREATE",
+                        visualType="card",
+                        title=measure_name,
+                        layout_intent="kpi_top",
+                        dataRoles={},  # Se crea placeholder; la medida se asigna manualmente.
+                        explanation="Para conteos únicos en tarjetas, Power BI requiere una medida en el modelo.",
+                        requirements=_make_requirements(
+                            operation="distinct_count",
+                            measure_template_id="distinct_count",
+                            suggested_measure_name=measure_name,
+                            table=cat_col["table"],
+                            column=cat_col["column"],
+                            dax_suggestion=f"{measure_name} = {dax_expr}",
+                        ),
+                    ),
+                )
+            )
+
+    # % del total (si tenemos métrica y dimensión)
+    if metric_col and cat_col:
+        base_expr = f"SUM('{metric_col['table']}'[{metric_col['column']}])"
+        dax_expr = _render_template(
+            "percent_of_total_agg",
+            {"base_expr": base_expr, "table": cat_col["table"], "category_column": cat_col["column"]},
+        )
+        if dax_expr:
+            name = f"% {metric_col['column']} del total"
+            playbooks.append(
+                Playbook(
+                    id="kpi_percent_of_total",
+                    title="% del total (KPI)",
+                    description=f"% del total de {metric_col['column']} por {cat_col['column']} (requiere medida).",
+                    action=VisualAction(
+                        operation="CREATE",
+                        visualType="card",
+                        title=name,
+                        layout_intent="kpi_top",
+                        dataRoles={},  # Placeholder; se asigna medida.
+                        explanation="Para participación (% del total) en tarjeta, Power BI requiere una medida en el modelo.",
+                        requirements=_make_requirements(
+                            operation="percent_of_total",
+                            measure_template_id="percent_of_total_agg",
+                            suggested_measure_name=name,
+                            table=cat_col["table"],
+                            column=cat_col["column"],
+                            dax_suggestion=f"{name} = {dax_expr}",
+                            format_hint="percentage",
+                        ),
+                    ),
+                )
+            )
+
+    # Acumulado / YoY (si existe fecha + métrica)
+    if metric_col and date_col:
+        base_expr = f"SUM('{metric_col['table']}'[{metric_col['column']}])"
+
+        rt_expr = _render_template(
+            "running_total_agg",
+            {"base_expr": base_expr, "date_table": date_col["table"], "date_col": date_col["column"]},
+        )
+        if rt_expr:
+            name = f"{metric_col['column']} acumulado"
+            playbooks.append(
+                Playbook(
+                    id="kpi_running_total",
+                    title="Acumulado (KPI)",
+                    description=f"Running total de {metric_col['column']} (requiere medida).",
+                    action=VisualAction(
+                        operation="CREATE",
+                        visualType="card",
+                        title=name,
+                        layout_intent="kpi_top",
+                        dataRoles={},
+                        explanation="Para acumulados (running total) en tarjeta, Power BI requiere una medida en el modelo.",
+                        requirements=_make_requirements(
+                            operation="running_total",
+                            measure_template_id="running_total_agg",
+                            suggested_measure_name=name,
+                            table=date_col["table"],
+                            column=date_col["column"],
+                            dax_suggestion=f"{name} = {rt_expr}",
+                        ),
+                    ),
+                )
+            )
+
+        yoy_expr = _render_template(
+            "yoy_delta_agg",
+            {"base_expr": base_expr, "date_table": date_col["table"], "date_col": date_col["column"]},
+        )
+        if yoy_expr:
+            name = f"YoY {metric_col['column']}"
+            playbooks.append(
+                Playbook(
+                    id="kpi_yoy_delta",
+                    title="YoY (KPI)",
+                    description=f"Variación interanual de {metric_col['column']} (requiere medida).",
+                    action=VisualAction(
+                        operation="CREATE",
+                        visualType="card",
+                        title=name,
+                        layout_intent="kpi_top",
+                        dataRoles={},
+                        explanation="Para YoY en tarjeta, Power BI requiere una medida en el modelo.",
+                        requirements=_make_requirements(
+                            operation="yoy",
+                            measure_template_id="yoy_delta_agg",
+                            suggested_measure_name=name,
+                            table=date_col["table"],
+                            column=date_col["column"],
+                            dax_suggestion=f"{name} = {yoy_expr}",
+                        ),
+                    ),
+                )
+            )
+
+    # Limitar ruido: máximo 8.
     return playbooks[:8]
