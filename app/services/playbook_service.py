@@ -54,6 +54,44 @@ def _looks_like_metric_name(name: str) -> bool:
     return any(k in n for k in ("stock", "venta", "ventas", "monto", "cantidad", "importe", "total", "saldo", "valor"))
 
 
+def _looks_like_identifier_name(name: str) -> bool:
+    """
+    True si el campo parece un identificador/código (no una métrica).
+
+    Ej: Lote, ID, Código, SKU, Nro, etc. Aunque sea numérico, no debe ir a Y/Values.
+    """
+    n = (name or "").strip().lower()
+    return any(
+        k in n
+        for k in (
+            "id",
+            "codigo",
+            "código",
+            "code",
+            "sku",
+            "lote",
+            "lot",
+            "nro",
+            "num",
+            "numero",
+            "número",
+            "serial",
+            "folio",
+            "documento",
+        )
+    )
+
+
+def _is_technical_table_name(table: str) -> bool:
+    t = (table or "").strip()
+    return t.startswith("DateTableTemplate") or t.startswith("LocalDateTable")
+
+
+def _is_technical_column_name(column: str) -> bool:
+    c = (column or "").strip()
+    return c.startswith("__") or c.startswith("[__") or "DateTableTemplate" in c
+
+
 def _is_date_col(col: dict[str, str]) -> bool:
     return _is_date_dtype(col.get("data_type", "") or "") or _looks_like_date_name(col.get("column", "") or "")
 
@@ -109,6 +147,10 @@ def _is_numeric_col(col: dict[str, str]) -> bool:
     name = col.get("column", "") or ""
     samples = col.get("sample_values") or []
 
+    # Identificadores nunca son métrica, aunque parezcan numéricos.
+    if _looks_like_identifier_name(name):
+        return False
+
     if _is_numeric_dtype(dt):
         return True
     if _is_measure(col):
@@ -116,9 +158,11 @@ def _is_numeric_col(col: dict[str, str]) -> bool:
     if isinstance(samples, list) and _looks_numeric_by_samples(samples):
         return True
 
-    # Solo si no tenemos tipo confiable, permitimos heurística por nombre.
-    if dt in {"", "unknown", "any", "variant"}:
-        return _looks_like_metric_name(name)
+    # Heurística por nombre: permite rescatar métricas reales aunque el dtype sea débil (p.ej. llega como String).
+    # _is_date_col ya bloquea "Fecha de stock".
+    if _looks_like_metric_name(name):
+        return True
+
     return False
 
 
@@ -171,14 +215,21 @@ async def generate_playbooks(report_id: str, tenant_id: str) -> list[Playbook]:
         return []
 
     cols = _flatten_dictionary(dictionary)
+    # Filtrar tablas/columnas técnicas (Power BI autogenera DateTableTemplate/LocalDateTable).
+    cols_user = [
+        c
+        for c in cols
+        if (not _is_technical_table_name(c.get("table", "")))
+        and (not _is_technical_column_name(c.get("column", "")))
+    ]
     date_col = _pick_first(
-        cols,
+        cols_user,
         prefer_name_contains=("fecha", "period", "mes", "ano", "year", "date"),
         predicate=lambda c: _is_date_col(c),
     )
     # Métrica: estricta (numérica/medida). Evita fechas que parezcan métricas por nombre.
     metric_col = _pick_first(
-        cols,
+        cols_user,
         prefer_name_contains=("stock", "venta", "ventas", "monto", "cantidad", "importe"),
         predicate=lambda c: _is_numeric_col(c),
     )
@@ -188,12 +239,12 @@ async def generate_playbooks(report_id: str, tenant_id: str) -> list[Playbook]:
     if metric_col is None:
         # Fallback ultra-seguro: solo dtype numérico o medidas (sin heurística por nombre).
         metric_col = _pick_first(
-            cols,
+            cols_user,
             predicate=lambda c: (not _is_date_col(c))
             and (_is_measure(c) or _is_numeric_dtype((c.get("data_type", "") or "").lower())),
         )
     cat_col = _pick_first(
-        cols,
+        cols_user,
         prefer_name_contains=("tipo", "categoria", "almacen", "regi", "producto", "material"),
         predicate=lambda c: (not _is_numeric_col(c)) and (not _is_date_col(c)) and (not _is_measure(c)),
     )
