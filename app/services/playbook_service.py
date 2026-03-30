@@ -58,6 +58,41 @@ def _is_date_col(col: dict[str, str]) -> bool:
     return _is_date_dtype(col.get("data_type", "") or "") or _looks_like_date_name(col.get("column", "") or "")
 
 
+def _looks_numeric_by_samples(samples: list[Any]) -> bool:
+    """
+    Inferencia defensiva de "columna numérica" a partir de sample_values.
+
+    WHY: En algunos tenants el schema llega con data_type vacío o como texto,
+    pero los valores de ejemplo sí son numéricos.
+    """
+    if not samples:
+        return False
+
+    ok = 0
+    total = 0
+    for v in samples[:8]:
+        if v is None:
+            continue
+        total += 1
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            ok += 1
+            continue
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                continue
+            # Normalizar separadores comunes.
+            s2 = s.replace(",", ".")
+            try:
+                float(s2)
+                ok += 1
+            except Exception:
+                pass
+
+    # Si al menos ~60% de los samples parsean a número, lo tratamos como numérico.
+    return total > 0 and (ok / total) >= 0.6
+
+
 def _is_numeric_col(col: dict[str, str]) -> bool:
     """
     Determina si una columna puede usarse como **métrica** (Y/Values).
@@ -72,10 +107,13 @@ def _is_numeric_col(col: dict[str, str]) -> bool:
 
     dt = (col.get("data_type", "") or "").strip().lower()
     name = col.get("column", "") or ""
+    samples = col.get("sample_values") or []
 
     if _is_numeric_dtype(dt):
         return True
     if _is_measure(col):
+        return True
+    if isinstance(samples, list) and _looks_numeric_by_samples(samples):
         return True
 
     # Solo si no tenemos tipo confiable, permitimos heurística por nombre.
@@ -104,8 +142,8 @@ def _pick_first(
     return None
 
 
-def _flatten_dictionary(dictionary: Any) -> list[dict[str, str]]:
-    out: list[dict[str, str]] = []
+def _flatten_dictionary(dictionary: Any) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     if not dictionary or not getattr(dictionary, "tables", None):
         return out
     for table_name, cols in dictionary.tables.items():
@@ -116,6 +154,7 @@ def _flatten_dictionary(dictionary: Any) -> list[dict[str, str]]:
                     "column": col.column_name,
                     "data_type": col.data_type or "",
                     "is_measure": "true" if (col.is_measure or False) else "false",
+                    "sample_values": list(col.sample_values or []),
                 }
             )
     return out
