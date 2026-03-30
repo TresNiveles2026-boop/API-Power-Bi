@@ -40,6 +40,50 @@ def _is_numeric_dtype(dt: str) -> bool:
     return any(k in d for k in ("int", "decimal", "double", "float", "number", "numeric", "currency"))
 
 
+def _is_measure(col: dict[str, str]) -> bool:
+    return str(col.get("is_measure", "") or "").strip().lower() in {"true", "1", "yes"}
+
+
+def _looks_like_date_name(name: str) -> bool:
+    n = (name or "").strip().lower()
+    return any(k in n for k in ("fecha", "date", "periodo", "mes", "año", "ano", "year", "yyyy", "yy"))
+
+
+def _looks_like_metric_name(name: str) -> bool:
+    n = (name or "").strip().lower()
+    return any(k in n for k in ("stock", "venta", "ventas", "monto", "cantidad", "importe", "total", "saldo", "valor"))
+
+
+def _is_date_col(col: dict[str, str]) -> bool:
+    return _is_date_dtype(col.get("data_type", "") or "") or _looks_like_date_name(col.get("column", "") or "")
+
+
+def _is_numeric_col(col: dict[str, str]) -> bool:
+    """
+    Determina si una columna puede usarse como **métrica** (Y/Values).
+
+    Reglas:
+    - Nunca usar fechas como métrica (aunque contengan "stock" en el nombre, ej. "Fecha de stock").
+    - Preferir dtype numérico o medidas.
+    - Usar heurística por nombre SOLO si el dtype está ausente/desconocido.
+    """
+    if _is_date_col(col):
+        return False
+
+    dt = (col.get("data_type", "") or "").strip().lower()
+    name = col.get("column", "") or ""
+
+    if _is_numeric_dtype(dt):
+        return True
+    if _is_measure(col):
+        return True
+
+    # Solo si no tenemos tipo confiable, permitimos heurística por nombre.
+    if dt in {"", "unknown", "any", "variant"}:
+        return _looks_like_metric_name(name)
+    return False
+
+
 def _pick_first(
     columns: list[dict[str, str]],
     *,
@@ -88,9 +132,32 @@ async def generate_playbooks(report_id: str, tenant_id: str) -> list[Playbook]:
         return []
 
     cols = _flatten_dictionary(dictionary)
-    date_col = _pick_first(cols, prefer_name_contains=("fecha", "period", "mes", "ano", "year", "date"), predicate=lambda c: _is_date_dtype(c["data_type"]) or "fecha" in c["column"].lower())
-    metric_col = _pick_first(cols, prefer_name_contains=("stock", "venta", "ventas", "monto", "cantidad", "importe"), predicate=lambda c: _is_numeric_dtype(c["data_type"]) or any(k in c["column"].lower() for k in ("stock", "monto", "cantidad", "ventas", "importe")))
-    cat_col = _pick_first(cols, prefer_name_contains=("tipo", "categoria", "almacen", "regi", "producto", "material"), predicate=lambda c: not _is_numeric_dtype(c["data_type"]) and not _is_date_dtype(c["data_type"]))
+    date_col = _pick_first(
+        cols,
+        prefer_name_contains=("fecha", "period", "mes", "ano", "year", "date"),
+        predicate=lambda c: _is_date_col(c),
+    )
+    # Métrica: estricta (numérica/medida). Evita fechas que parezcan métricas por nombre.
+    metric_col = _pick_first(
+        cols,
+        prefer_name_contains=("stock", "venta", "ventas", "monto", "cantidad", "importe"),
+        predicate=lambda c: _is_numeric_col(c),
+    )
+    # Defensa adicional: si por alguna razón el heurístico se equivoca, nunca aceptar una fecha como métrica.
+    if metric_col and _is_date_col(metric_col):
+        metric_col = None
+    if metric_col is None:
+        # Fallback ultra-seguro: solo dtype numérico o medidas (sin heurística por nombre).
+        metric_col = _pick_first(
+            cols,
+            predicate=lambda c: (not _is_date_col(c))
+            and (_is_measure(c) or _is_numeric_dtype((c.get("data_type", "") or "").lower())),
+        )
+    cat_col = _pick_first(
+        cols,
+        prefer_name_contains=("tipo", "categoria", "almacen", "regi", "producto", "material"),
+        predicate=lambda c: (not _is_numeric_col(c)) and (not _is_date_col(c)) and (not _is_measure(c)),
+    )
 
     playbooks: list[Playbook] = []
 
@@ -179,4 +246,3 @@ async def generate_playbooks(report_id: str, tenant_id: str) -> list[Playbook]:
         )
 
     return playbooks[:8]
-
